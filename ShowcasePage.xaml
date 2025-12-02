@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="app.ShowcasePage"
+             Title="Showcase">
+    <VerticalStackLayout Padding="12" Spacing="8">
+
+        <Label x:Name="FolderPathLabel"
+               Text="Waiting for folder..."
+               LineBreakMode="TailTruncation"
+               HorizontalOptions="Fill" />
+
+        <HorizontalStackLayout HorizontalOptions="Center" Spacing="12">
+            <Button Text="Go left" Clicked="OnGoLeftClicked" />
+            <Button Text="Go right" Clicked="OnGoRightClicked" />
+        </HorizontalStackLayout>
+
+        <!--
+        <CarouselView x:Name="carousel">
+        </CarouselView> 
+        -->
+
+        <!--
+        <CarouselView x:Name="carousel"
+              HeightRequest="480"
+              HorizontalOptions="FillAndExpand"
+              VerticalOptions="FillAndExpand"
+              IsBounceEnabled="False">
+            <CarouselView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="8">
+                        <Image IsVisible="{Binding IsImage}"
+                       Source="{Binding FilePath}"
+                       Aspect="AspectFit" />
+
+                        <VerticalStackLayout IsVisible="{Binding IsVideo}"
+                                     HorizontalOptions="Center"
+                                     VerticalOptions="Center"
+                                     Spacing="8">
+                            <Label Text="{Binding FileName}" HorizontalTextAlignment="Center" />
+                            <Button Text="Play" Clicked="OnPlayClicked" CommandParameter="{Binding FilePath}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </DataTemplate>
+            </CarouselView.ItemTemplate>
+        </CarouselView>
+        -->
+        
+        <!-- <Frame Padding="0" CornerRadius="8" HasShadow="True" VerticalOptions="FillAndExpand">
+            
+        </Frame> -->
+
+    </VerticalStackLayout>
+</ContentPage>
