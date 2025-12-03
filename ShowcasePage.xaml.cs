@@ -1,8 +1,4 @@
-using CommunityToolkit.Maui.Alerts;
-using CommunityToolkit.Maui.Core.Primitives;
-using Microsoft.Maui.Controls;
 using System.Collections.ObjectModel;
-using System.Threading;
 
 namespace app
 {

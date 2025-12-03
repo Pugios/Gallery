@@ -9,8 +9,14 @@
             <CarouselView.ItemTemplate>
                 <DataTemplate>
                     <Grid>
-                        <Image Source="{Binding}" 
-                       Aspect="AspectFit" />
+                        <Image x:Name="img"
+                               Source="{Binding}" 
+                               Aspect="AspectFit" />
+                        <ActivityIndicator 
+                            IsRunning="{Binding Source={x:Reference img}, Path=IsLoading}"
+                            IsVisible="{Binding Source={x:Reference img}, Path=IsLoading}"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center"/>
                     </Grid>
                 </DataTemplate>
             </CarouselView.ItemTemplate>
@@ -18,7 +24,8 @@
         
         <Grid Padding="20"
               RowDefinitions="1*, 5*, 1*"
-              ColumnDefinitions="1*, 5*, 1*">
+              ColumnDefinitions="1*, 5*, 1*"
+              InputTransparent="True">
 
             <Label x:Name="Info"
                    Text="This is some really interesting Information"
@@ -26,6 +33,7 @@
                    Grid.Column="1"
                    Grid.ColumnSpan="3"
                    HorizontalOptions="Center"
+                   VerticalOptions="Center"
                    TextColor="White"
                    FontSize="20"/>
 
@@ -46,8 +54,9 @@
                            Grid.Column="0"
                            Grid.ColumnSpan="3"
                            IndicatorColor="LightGray"
-                           SelectedIndicatorColor="DarkGray"
-                           HorizontalOptions="Center" />
+                           SelectedIndicatorColor="Purple"
+                           HorizontalOptions="Center" 
+                           VerticalOptions="Center"/>
             
         </Grid>
     </Grid>
