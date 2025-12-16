@@ -15,9 +15,9 @@ namespace app
             BindingContext = this;
         }
 
+        // Accept Query Data aka. Folder Path of Images
         protected string folderPath { get; private set; }
 
-        // Accept Query Data aka. Folder Path of Images
         public void ApplyQueryAttributes(IDictionary<string, object> query)
         {
             folderPath = Uri.UnescapeDataString(query["folderPath"] as string);
@@ -27,7 +27,9 @@ namespace app
             readInfo(ImagePaths.First());
         }
 
-        // Show images in the Carousel
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        //                  Carousel
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         public ObservableCollection<string> ImagePaths { get; } = new();
         private void PopulateCarousel()
         {
@@ -36,8 +38,8 @@ namespace app
             var files = System.IO.Directory.GetFiles(folderPath)
                              .Where(f =>
                                  f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)// ||
-                                 //f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
-                                 //f.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)
+                                                                                       //f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                                                                                       //f.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)
                                  )
                              .ToList();
 
@@ -58,7 +60,7 @@ namespace app
                 newIndex = 0; // wrap
                 animate = false;
             }
-            
+
             carouselView.ScrollTo(newIndex, animate: animate);
         }
 
@@ -75,18 +77,11 @@ namespace app
             carouselView.ScrollTo(newIndex, animate: animate);
         }
 
-        // EXIF Data Reading and showing information!
-        // Cache to avoid repeatedly reading EXIF for the same file
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        //              EXIF Data Reading
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
         readonly Dictionary<string, string> _dateCache = new();
-
-        private void OnPositionChanged(object? sender, PositionChangedEventArgs e)
-        {
-            var pos = e.CurrentPosition;
-            if (pos >= 0 && pos < ImagePaths.Count)
-                readInfo(ImagePaths[pos]);
-            Debug.WriteLine($"Current Position: {pos}");
-        }
-
         private void readInfo(string imagePath)
         {
             // Check if we already have the date cached
@@ -101,13 +96,30 @@ namespace app
             var exifSubIfd = directories.OfType<ExifSubIfdDirectory>().FirstOrDefault();
 
             string datetime = "No Date Found";
-            if (exifSubIfd?.TryGetDateTime(ExifDirectoryBase.TagDateTimeOriginal,out DateTime dateTimeOriginal)??false)
+            if (exifSubIfd?.TryGetDateTime(ExifDirectoryBase.TagDateTimeOriginal, out DateTime dateTimeOriginal) ?? false)
             {
                 datetime = dateTimeOriginal.ToString();
             }
             Info.Text = datetime;
             _dateCache[imagePath] = datetime;
-            Debug.WriteLine($"DateTime: {datetime}");
+            //Debug.WriteLine($"DateTime: {datetime}");
+
+            foreach (var directory in directories)
+                foreach (var tag in directory.Tags)
+                    Debug.WriteLine($"Directory {directory.Name} - Tag {tag.Name} = {tag.Description}");
         }
+
+        // When changing Picture in Carousel
+        private void OnPositionChanged(object? sender, PositionChangedEventArgs e)
+        {
+            var pos = e.CurrentPosition;
+            if (pos >= 0 && pos < ImagePaths.Count)
+                readInfo(ImagePaths[pos]);
+            //Debug.WriteLine($"Current Position: {pos}");
+        }
+
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        //              MAP
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     }
 }

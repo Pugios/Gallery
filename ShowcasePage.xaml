@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="app.ShowcasePage">
     <Grid>
-        
+
         <CarouselView x:Name="carouselView"
                       ItemsSource="{Binding ImagePaths}"
                       PositionChanged="OnPositionChanged">
@@ -22,7 +22,7 @@
                 </DataTemplate>
             </CarouselView.ItemTemplate>
         </CarouselView>
-        
+
         <Grid Padding="20"
               RowDefinitions="1*, 5*, 1*"
               ColumnDefinitions="1*, 5*, 1*">
@@ -49,6 +49,18 @@
                     Grid.Column="2"
                     Style="{StaticResource directionButton}"
                     Clicked="OnNextClicked"/>
+
+            <WebView x:Name="webView"
+                     Grid.Row="2"
+                     Grid.Column="2"
+                     HorizontalOptions="End"
+                     VerticalOptions="End"
+                     HeightRequest="200"
+                     WidthRequest="200">
+                <WebView.Source>
+                    <UrlWebViewSource Url="map.html"/>
+                </WebView.Source>
+            </WebView>
 
         </Grid>
     </Grid>
