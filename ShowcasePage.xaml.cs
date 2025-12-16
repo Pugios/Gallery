@@ -1,3 +1,4 @@
+using app.Models;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
 using System.Collections.ObjectModel;
@@ -81,32 +82,73 @@ namespace app
         //              EXIF Data Reading
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        readonly Dictionary<string, string> _dateCache = new();
+        readonly Dictionary<string, ImageMetadata> imageDataCache = new();
         private void readInfo(string imagePath)
         {
             // Check if we already have the date cached
-            if (_dateCache.TryGetValue(imagePath, out var cachedDate))
+            if (imageDataCache.TryGetValue(imagePath, out var cachedMetadata))
             {
-                Info.Text = cachedDate;
+                updateUI(cachedMetadata);
                 return;
             }
 
+            ImageMetadata metadata = new ImageMetadata { FilePath = imagePath };
+
             IEnumerable<MetadataExtractor.Directory> directories = ImageMetadataReader.ReadMetadata(imagePath);
 
+            // Read Date/
             var exifSubIfd = directories.OfType<ExifSubIfdDirectory>().FirstOrDefault();
 
-            string datetime = "No Date Found";
             if (exifSubIfd?.TryGetDateTime(ExifDirectoryBase.TagDateTimeOriginal, out DateTime dateTimeOriginal) ?? false)
             {
-                datetime = dateTimeOriginal.ToString();
+                metadata.DateTime = dateTimeOriginal;
             }
-            Info.Text = datetime;
-            _dateCache[imagePath] = datetime;
-            //Debug.WriteLine($"DateTime: {datetime}");
 
+            // Read GPS
+            var gpsDirectory = directories.OfType<GpsDirectory>().FirstOrDefault();
+
+            if (gpsDirectory?.TryGetGeoLocation(out var geoLocation) ?? false){
+                metadata.Location = new GpsCoordinates()
+                {
+                    Latitude = geoLocation.Latitude,
+                    Longitude = geoLocation.Longitude
+                };
+            }
+
+            // Image Direction
+            if(gpsDirectory?.TryGetDouble(GpsDirectory.TagImgDirection, out double direction) ?? false)
+            {
+                metadata.ImageDirection = direction;
+
+                // Magnetic Direction
+                var directionRef = gpsDirectory.GetString(GpsDirectory.TagImgDirectionRef);
+                metadata.IsMagneticDirection = directionRef == "M";
+            }
+
+            imageDataCache.Add(imagePath, metadata);
+            updateUI(metadata);
+
+            /*
+            Debug.WriteLine($"Data for {imagePath}");
             foreach (var directory in directories)
                 foreach (var tag in directory.Tags)
+                {
                     Debug.WriteLine($"Directory {directory.Name} - Tag {tag.Name} = {tag.Description}");
+                }
+            */
+        }
+
+        private void updateUI(ImageMetadata metadata)
+        {
+            Info.Text = metadata.GetDisplayDate();
+
+            if (metadata.Location != null){
+                string lat = metadata.Location.Latitude.ToString().Replace(",", ".");
+                string lon = metadata.Location.Longitude.ToString().Replace(",", ".");
+
+                Debug.WriteLine($"Updating Map Location to: {lat}, {lon}");
+                webView.EvaluateJavaScriptAsync($"updateMapLocation({lat}, {lon});");
+            }
         }
 
         // When changing Picture in Carousel
