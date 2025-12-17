@@ -63,5 +63,26 @@
             </WebView>
 
         </Grid>
+
+        <Grid
+            BackgroundColor="#80000000"
+            IsVisible="{Binding IsLoading}">
+
+            <VerticalStackLayout
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Spacing="12"
+                WidthRequest="300">
+
+                <ProgressBar
+                    Progress="{Binding Progress}"
+                    HeightRequest="8" />
+
+                <Label
+                    Text="{Binding Progress, StringFormat='{0:P0}'}"
+                    HorizontalOptions="Center"
+                    TextColor="White" />
+            </VerticalStackLayout>
+        </Grid>
     </Grid>
 </ContentPage>

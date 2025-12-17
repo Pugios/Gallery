@@ -2,6 +2,7 @@ using app.Models;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 
@@ -16,25 +17,57 @@ namespace app
             BindingContext = this;
         }
 
+        // Loading Animation
+        private bool _isLoading;
+        public bool IsLoading
+        {
+            get => _isLoading;
+            set
+            {
+                _isLoading = value;
+                OnPropertyChanged(nameof(IsLoading));
+            }
+        }
+
+        private double _progress;
+        public double Progress
+        {
+            get => _progress;
+            set
+            {
+                if (_progress == value)
+                    return;
+
+                _progress = value;
+                OnPropertyChanged(nameof(Progress));
+            }
+        }
+
         // Accept Query Data aka. Folder Path of Images
         protected string folderPath { get; private set; }
-
-        public void ApplyQueryAttributes(IDictionary<string, object> query)
+        public async void ApplyQueryAttributes(IDictionary<string, object> query)
         {
-            folderPath = Uri.UnescapeDataString(query["folderPath"] as string);
-            OnPropertyChanged("folderPath");
-            PopulateCarousel();
+            IsLoading = true;
+            Progress = 0;
 
-            readInfo(ImagePaths.First());
+            folderPath = Uri.UnescapeDataString(query["folderPath"] as string);
+            
+            await PopulateCarousel();
+
+            Progress = 1;
+            IsLoading = false;
         }
 
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         //                  Carousel
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        public ObservableCollection<string> ImagePaths { get; } = new();
-        private void PopulateCarousel()
+        public ObservableCollection<string> ImagePaths { get; } = new();    // Collection of image paths for CarouselView
+        private Dictionary<string, ImageMetadata> imageDataCache = new();   // Stores metadata for images
+
+        private async Task PopulateCarousel()
         {
             ImagePaths.Clear();
+            imageDataCache.Clear();
 
             var files = System.IO.Directory.GetFiles(folderPath)
                              .Where(f =>
@@ -44,11 +77,35 @@ namespace app
                                  )
                              .ToList();
 
+
             // Add files to a collection bound to your CarouselView
-            foreach (var file in files)
+            imageDataCache = await Task.Run(() =>
             {
-                ImagePaths.Add(file);
+                Dictionary<string, ImageMetadata> localImageDataCache = new Dictionary<string, ImageMetadata>();
+
+                foreach (var file in files)
+                {
+                    ImageMetadata metadata = readInfo(file);
+                    localImageDataCache.Add(file, metadata);
+
+                    double progress = (double)localImageDataCache.Count / files.Count;
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        Progress = progress;
+                    });
+                }
+
+                return localImageDataCache;
+            });
+
+            
+            foreach (string imagePath in imageDataCache.OrderBy(x => x.Value.DateTime).Select(x => x.Key))
+            {
+                ImagePaths.Add(imagePath);
             }
+
+            updateUI(imageDataCache[ImagePaths.First()]);
+            return;
         }
 
         // Button Controlls
@@ -80,16 +137,13 @@ namespace app
 
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         //              EXIF Data Reading
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-        readonly Dictionary<string, ImageMetadata> imageDataCache = new();
-        private void readInfo(string imagePath)
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
+        private ImageMetadata readInfo(string imagePath)
         {
             // Check if we already have the date cached
             if (imageDataCache.TryGetValue(imagePath, out var cachedMetadata))
             {
-                updateUI(cachedMetadata);
-                return;
+                return cachedMetadata;
             }
 
             ImageMetadata metadata = new ImageMetadata { FilePath = imagePath };
@@ -125,9 +179,7 @@ namespace app
                 metadata.IsMagneticDirection = directionRef == "M";
             }
 
-            imageDataCache.Add(imagePath, metadata);
-            updateUI(metadata);
-
+            return metadata;
             /*
             Debug.WriteLine($"Data for {imagePath}");
             foreach (var directory in directories)
@@ -156,7 +208,10 @@ namespace app
         {
             var pos = e.CurrentPosition;
             if (pos >= 0 && pos < ImagePaths.Count)
+            {
                 readInfo(ImagePaths[pos]);
+                updateUI(imageDataCache[ImagePaths[pos]]);
+            }
             //Debug.WriteLine($"Current Position: {pos}");
         }
 
