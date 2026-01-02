@@ -34,9 +34,9 @@
                 HorizontalOptions="Start"
                 VerticalOptions="Start"
                 Spacing="10">
-                <Button Text="In"
+                <Button Text="+"
                         Style="{StaticResource directionButton}"/>
-                <Button Text="Out"
+                <Button Text="-"
                         Style="{StaticResource directionButton}"/>
             </StackLayout>
 
