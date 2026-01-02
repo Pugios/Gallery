@@ -17,6 +17,24 @@ namespace app
             BindingContext = this;
         }
 
+        // Accept Query Data aka. Folder Path of Images
+        protected string folderPath { get; private set; }
+        public async void ApplyQueryAttributes(IDictionary<string, object> query)
+        {
+            IsLoading = true;
+            Progress = 0;
+
+            folderPath = Uri.UnescapeDataString(query["folderPath"] as string);
+
+            await LoadImages();
+            Progress = 1;
+            IsLoading = false;
+            updateUI(imageDataCache[imagePaths.First()]);
+        }
+
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        //               Load Images
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         // Loading Animation
         private bool _isLoading;
         public bool IsLoading
@@ -43,30 +61,12 @@ namespace app
             }
         }
 
-        // Accept Query Data aka. Folder Path of Images
-        protected string folderPath { get; private set; }
-        public async void ApplyQueryAttributes(IDictionary<string, object> query)
-        {
-            IsLoading = true;
-            Progress = 0;
-
-            folderPath = Uri.UnescapeDataString(query["folderPath"] as string);
-            
-            await PopulateCarousel();
-
-            Progress = 1;
-            IsLoading = false;
-        }
-
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        //                  Carousel
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        public ObservableCollection<string> ImagePaths { get; } = new();    // Collection of image paths for CarouselView
+        public ObservableCollection<string> imagePaths { get; } = new();    // Collection of image paths for CarouselView
         private Dictionary<string, ImageMetadata> imageDataCache = new();   // Stores metadata for images
 
-        private async Task PopulateCarousel()
+        private async Task LoadImages()
         {
-            ImagePaths.Clear();
+            imagePaths.Clear();
             imageDataCache.Clear();
 
             var files = System.IO.Directory.GetFiles(folderPath)
@@ -101,38 +101,11 @@ namespace app
             
             foreach (string imagePath in imageDataCache.OrderBy(x => x.Value.DateTime).Select(x => x.Key))
             {
-                ImagePaths.Add(imagePath);
+                imagePaths.Add(imagePath);
             }
 
-            updateUI(imageDataCache[ImagePaths.First()]);
+
             return;
-        }
-
-        // Button Controlls
-        private void OnNextClicked(object sender, EventArgs e)
-        {
-            bool animate = true;
-            var newIndex = carouselView.Position + 1;
-            if (newIndex >= ImagePaths.Count)
-            {
-                newIndex = 0; // wrap
-                animate = false;
-            }
-
-            carouselView.ScrollTo(newIndex, animate: animate);
-        }
-
-        private void OnPrevClicked(object sender, EventArgs e)
-        {
-            bool animate = true;
-            var newIndex = carouselView.Position - 1;
-            if (newIndex < 0)
-            {
-                newIndex = ImagePaths.Count - 1;
-                animate = false;
-            }
-
-            carouselView.ScrollTo(newIndex, animate: animate);
         }
 
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -161,7 +134,8 @@ namespace app
             // Read GPS
             var gpsDirectory = directories.OfType<GpsDirectory>().FirstOrDefault();
 
-            if (gpsDirectory?.TryGetGeoLocation(out var geoLocation) ?? false){
+            if (gpsDirectory?.TryGetGeoLocation(out var geoLocation) ?? false)
+            {
                 metadata.Location = new GpsCoordinates()
                 {
                     Latitude = geoLocation.Latitude,
@@ -170,7 +144,7 @@ namespace app
             }
 
             // Image Direction
-            if(gpsDirectory?.TryGetDouble(GpsDirectory.TagImgDirection, out double direction) ?? false)
+            if (gpsDirectory?.TryGetDouble(GpsDirectory.TagImgDirection, out double direction) ?? false)
             {
                 metadata.ImageDirection = direction;
 
@@ -190,6 +164,36 @@ namespace app
             */
         }
 
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        //                   UI
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
+
+        // Button Controlls
+        private void OnNextClicked(object sender, EventArgs e)
+        {
+            bool animate = true;
+            var newIndex = carouselView.Position + 1;
+            if (newIndex >= imagePaths.Count)
+            {
+                newIndex = 0; // wrap
+                animate = false;
+            }
+
+            carouselView.ScrollTo(newIndex, animate: animate);
+        }
+
+        private void OnPrevClicked(object sender, EventArgs e)
+        {
+            bool animate = true;
+            var newIndex = carouselView.Position - 1;
+            if (newIndex < 0)
+            {
+                newIndex = imagePaths.Count - 1;
+                animate = false;
+            }
+            carouselView.ScrollTo(newIndex, animate: animate);
+        }
+
         private void updateUI(ImageMetadata metadata)
         {
             Info.Text = metadata.GetDisplayDate();
@@ -203,20 +207,22 @@ namespace app
             }
         }
 
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        //              MAP
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
         // When changing Picture in Carousel
         private void OnPositionChanged(object? sender, PositionChangedEventArgs e)
         {
             var pos = e.CurrentPosition;
-            if (pos >= 0 && pos < ImagePaths.Count)
+            if (pos >= 0 && pos < imagePaths.Count)
             {
-                readInfo(ImagePaths[pos]);
-                updateUI(imageDataCache[ImagePaths[pos]]);
+                readInfo(imagePaths[pos]);
+                updateUI(imageDataCache[imagePaths[pos]]);
             }
             //Debug.WriteLine($"Current Position: {pos}");
         }
 
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        //              MAP
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     }
 }
