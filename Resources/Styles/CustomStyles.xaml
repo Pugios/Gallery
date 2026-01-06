@@ -9,4 +9,11 @@
         <Setter Property="FontSize" Value="18" />
         <Setter Property="CornerRadius" Value="90" />
     </Style>
+
+    <Style x:Key="infoLabel" TargetType="Label">
+        <Setter Property="TextColor" Value="White" />
+        <Setter Property="BackgroundColor" Value="Gray" />
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
 </ResourceDictionary>

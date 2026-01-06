@@ -1,9 +1,14 @@
-using System;
+using app;
 using app.Models;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
+using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using Microsoft.UI.Input;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Input;
+using Windows.System;
 
 namespace app
 {
@@ -204,26 +209,8 @@ namespace app
         private void UpdateGridLayout(int itemCount)
         {
             var span = Math.Max(1, (int)Math.Round(Math.Sqrt(itemCount)));
-            var layout = new GridItemsLayout(span, ItemsLayoutOrientation.Vertical)
-            {
-                HorizontalItemSpacing = 6,
-                VerticalItemSpacing = 6
-            };
-            MultiView.ItemsLayout = layout;
-        }
-
-        private void showCurrDay()
-        {
-            List<string> dayList = getImagesOfDay();
-
-            if (dayList?.Count <= 0)
-            {
-                return;
-            }
-
-            UpdateGridLayout(dayList.Count);
-            GroupImagePaths = dayList;
-            return;
+            GIL.Span = span;
+            Debug.WriteLine($"Grid has span of {span}");
         }
 
         private List<string> getImagesOfDay()
@@ -233,7 +220,7 @@ namespace app
 
             if (imagePaths.Count == 0)
                 return imagesOfDay;
-            
+
             var currDay = imageDataCache[imagePaths[focusedIndex]].DateTime.GetValueOrDefault().Date;
 
             foreach (var imagePath in imagePaths)
@@ -250,41 +237,25 @@ namespace app
             return imagesOfDay;
         }
 
-        private void OnZoomOutClicked(Object sender, EventArgs e)
+        private void showCurrDay()
         {
-            showCurrDay();
-            MultiView.IsVisible = true;
+            List<string> dayList = getImagesOfDay();
 
-            SingleView.IsVisible = false;
+            if (dayList?.Count <= 0)
+            {
+                return;
+            }
+
+            UpdateGridLayout(dayList.Count);
+            GroupImagePaths = dayList;
+            return;
         }
-
-
-        private void OnZoomInClicked(Object sender, EventArgs e)
-        {
-            MultiView.IsVisible = false;
-
-            SingleView.IsVisible = true;
-        }
-
-        //private async void ShowSingleView()
-        //{
-        //    SingleView.IsVisible = true;
-        //    await Task.WhenAll(
-        //        SingleView.FadeTo(1, 120, Easing.CubicOut),
-        //        SingleView.ScaleTo(1, 120, Easing.CubicOut),
-        //        MultiView.FadeTo(0, 120, Easing.CubicOut),
-        //        MultiView.ScaleTo(0.85, 120, Easing.CubicOut)
-        //    );
-        //    MultiView.IsVisible = false;
-        //}
 
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         //                   UI
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
 
-
-
-        // Button Controlls
+        // Next / Previous Image
         private void OnNextClicked(object sender, EventArgs e)
         {
             focusedIndex += 1;
@@ -306,23 +277,6 @@ namespace app
             ImagePath = imagePaths[focusedIndex];
         }
 
-        private void updateUI(ImageMetadata metadata)
-        {
-            Info.Text = metadata.GetDisplayDate();
-
-            if (metadata.Location != null){
-                string lat = metadata.Location.Latitude.ToString().Replace(",", ".");
-                string lon = metadata.Location.Longitude.ToString().Replace(",", ".");
-
-                Debug.WriteLine($"Updating Map Location to: {lat}, {lon}");
-                webView.EvaluateJavaScriptAsync($"updateMapLocation({lat}, {lon});");
-            }
-        }
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        //              MAP
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-        // When changing Picture in Carousel
         private void OnPositionChanged(object? sender, PositionChangedEventArgs e)
         {
             var pos = e.CurrentPosition;
@@ -331,9 +285,41 @@ namespace app
                 readInfo(imagePaths[pos]);
                 updateUI(imageDataCache[imagePaths[pos]]);
             }
-            //Debug.WriteLine($"Current Position: {pos}");
+        }
+
+        // Switch Collection / Content View
+        private void OnZoomOutClicked(Object sender, EventArgs e)
+        {
+            showCurrDay();
+            MultiView.IsVisible = true;
+
+            SingleView.IsVisible = false;
         }
 
 
+        private void OnZoomInClicked(Object sender, EventArgs e)
+        {
+            MultiView.IsVisible = false;
+
+            SingleView.IsVisible = true;
+        }
+
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        //              MAP
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        private void updateUI(ImageMetadata metadata)
+        {
+            Info.Text = metadata.GetDisplayDate();
+
+            if (metadata.Location != null)
+            {
+                string lat = metadata.Location.Latitude.ToString().Replace(",", ".");
+                string lon = metadata.Location.Longitude.ToString().Replace(",", ".");
+
+                Debug.WriteLine($"Updating Map Location to: {lat}, {lon}");
+                webView.EvaluateJavaScriptAsync($"updateMapLocation({lat}, {lon});");
+            }
+        }
     }
 }
