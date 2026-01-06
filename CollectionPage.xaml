@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="app.CollectionPage">
+    <Grid>
+
+        <!-- SINGLE IMAGE VIEW -->
+        <ContentView 
+        x:Name="SingleView"
+        IsVisible="True"
+        Scale="1">
+            <Image
+        Source="{Binding ImagePath}"
+        Aspect="AspectFit" />
+        </ContentView>
+
+        <!-- MULTI IMAGE VIEW -->
+        <CollectionView
+        x:Name="MultiView"
+        IsVisible="False"
+        Scale="0.85"
+        ItemsSource="{Binding GroupImagePaths}">
+            <CollectionView.ItemsLayout>
+                <GridItemsLayout Orientation="Vertical" Span="3" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Image
+                Source="{Binding .}"
+                Aspect="AspectFill"
+                Margin="1"
+                HorizontalOptions="FillAndExpand"
+                VerticalOptions="FillAndExpand" />
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- UI -->
+        <Grid
+            RowDefinitions="1*, *, 1*"
+            ColumnDefinitions="1*, *, 1*"
+            Padding="20">
+            
+            <!-- Zoom In/Out Button -->
+            <StackLayout
+                Grid.Row="0"
+                Grid.Column="0"
+                VerticalOptions="Start"
+                Orientation="Horizontal"
+                Spacing="10">
+
+                <Button Text="+"
+                    x:Name="ZoomInButton"
+                    Style="{StaticResource directionButton}"
+                    Clicked="OnZoomInClicked"/>
+                <Button Text="-"
+                    x:Name="ZoomOutButton"
+                    Style="{StaticResource directionButton}"
+                    Clicked="OnZoomOutClicked"/>
+
+            </StackLayout>
+            
+            <!-- Info Box-->
+            <Label x:Name="Info"
+                   Grid.Row="0"
+                   Grid.Column="2"
+                   Text="Information"
+                   TextColor="White"
+                   BackgroundColor="Gray"
+                   FontSize="20"/>
+
+            <!-- Move Left/Right Buttons -->
+            <Button 
+                Grid.Row="1"
+                Grid.Column="0"
+                Text="&lt;"
+                VerticalOptions="Center"
+                HorizontalOptions="Start"
+                Style="{StaticResource directionButton}"
+                Clicked="OnPrevClicked"/>
+
+            <Button 
+                Grid.Row="1"
+                Grid.Column="2"
+                Text="&gt;"
+                VerticalOptions="Center"
+                HorizontalOptions="End"
+                Style="{StaticResource directionButton}"
+                Clicked="OnNextClicked"/>
+
+            <!-- Map -->
+            <WebView 
+                Grid.Row="2"
+                Grid.Column="2"
+                x:Name="webView"
+                HorizontalOptions="End"
+                VerticalOptions="End"
+                HeightRequest="200"
+                WidthRequest="200">
+                <WebView.Source>
+                    <UrlWebViewSource Url="map.html"/>
+                </WebView.Source>
+            </WebView>
+        </Grid>
+
+        <!-- Loading Overlay -->
+        <Grid
+            BackgroundColor="#80000000"
+            IsVisible="{Binding IsLoading}">
+
+            <VerticalStackLayout
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            Spacing="12"
+            WidthRequest="300">
+
+                <ProgressBar
+            Progress="{Binding Progress}"
+            HeightRequest="8" />
+
+                <Label
+                Text="{Binding Progress, StringFormat='{0:P0}'}"
+                HorizontalOptions="Center"
+                TextColor="White" />
+            </VerticalStackLayout>
+
+        </Grid>
+    </Grid>
+</ContentPage>

@@ -68,12 +68,18 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Update="Tester.xaml.cs">
+	    <DependentUpon>Tester.xaml</DependentUpon>
+	  </Compile>
 	  <Compile Update="ShowcasePage.xaml.cs">
 	    <DependentUpon>ShowcasePage.xaml</DependentUpon>
 	  </Compile>
 	</ItemGroup>
 
 	<ItemGroup>
+	  <MauiXaml Update="Tester.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Resources\Styles\CustomStyles.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
