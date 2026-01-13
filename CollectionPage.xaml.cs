@@ -2,13 +2,12 @@ using app;
 using app.Models;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
-using System;
+using SharpHook;
+using SharpHook.Providers;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using Microsoft.UI.Input;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Input;
-using Windows.System;
+using System.Threading.Tasks;
+
 
 namespace app
 {
@@ -34,7 +33,8 @@ namespace app
             Progress = 1;
             IsLoading = false;
             showFirstImg();
-            updateUI(imageDataCache[imagePaths.First()]);
+            updateUI();
+            //await UiHook();
         }
 
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -100,7 +100,7 @@ namespace app
                 return localImageDataCache;
             });
 
-            
+
             foreach (string imagePath in imageDataCache.OrderBy(x => x.Value.DateTime).Select(x => x.Key))
             {
                 imagePaths.Add(imagePath);
@@ -182,7 +182,7 @@ namespace app
 
         private int focusedIndex = 0;
 
-         private void showFirstImg()
+        private void showFirstImg()
         {
             if (imagePaths?.Count > 0)
             {
@@ -264,7 +264,7 @@ namespace app
             {
                 focusedIndex = 0; // wrap
             }
-            ImagePath = imagePaths[focusedIndex];
+            updateUI();
         }
 
         private void OnPrevClicked(object sender, EventArgs e)
@@ -274,42 +274,39 @@ namespace app
             {
                 focusedIndex = imagePaths.Count - 1;
             }
-            ImagePath = imagePaths[focusedIndex];
-        }
 
-        private void OnPositionChanged(object? sender, PositionChangedEventArgs e)
-        {
-            var pos = e.CurrentPosition;
-            if (pos >= 0 && pos < imagePaths.Count)
-            {
-                readInfo(imagePaths[pos]);
-                updateUI(imageDataCache[imagePaths[pos]]);
-            }
+            updateUI();
         }
 
         // Switch Collection / Content View
-        private void OnZoomOutClicked(Object sender, EventArgs e)
+        int currentMode = 0;
+        private void BiggerGroupClicked(Object sender, EventArgs e)
         {
             showCurrDay();
             MultiView.IsVisible = true;
-
             SingleView.IsVisible = false;
+
+            currentMode = 1;
         }
 
-
-        private void OnZoomInClicked(Object sender, EventArgs e)
+        private void SmallerGroupClicked(Object sender, EventArgs e)
         {
             MultiView.IsVisible = false;
-
             SingleView.IsVisible = true;
+
+            currentMode = 0;
         }
 
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         //              MAP
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        private void updateUI(ImageMetadata metadata)
+        private void updateUI()
         {
+            ImagePath = imagePaths[focusedIndex];
+
+            ImageMetadata metadata = imageDataCache.ContainsKey(imagePaths[focusedIndex]) ? imageDataCache[imagePaths[focusedIndex]] : readInfo(imagePaths[focusedIndex]);
+
             Info.Text = metadata.GetDisplayDate();
 
             if (metadata.Location != null)
@@ -320,6 +317,150 @@ namespace app
                 Debug.WriteLine($"Updating Map Location to: {lat}, {lon}");
                 webView.EvaluateJavaScriptAsync($"updateMapLocation({lat}, {lon});");
             }
+
+            resetImage();
         }
+
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        //              Zoom In/Out
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        //// Zoom Buttons
+        //private void OnZoomInClicked(Object sender, EventArgs e)
+        //{
+        //    ZoomAtPoint(currentMode == 0 ? SingleView : MultiView, 360, 0, 0);
+        //}
+        //private void OnZoomOutClicked(Object sender, EventArgs e)
+        //{
+        //    ZoomAtPoint(currentMode == 0 ? SingleView : MultiView, -360, 0, 0);
+        //}
+
+        //// Mouse Wheel Zoom
+        //bool insideImageArea = false;
+        //private void OnPointerEntered(object sender, PointerEventArgs e)
+        //{
+        //    insideImageArea = true;
+        //}
+        //private void OnPointerExited(object sender, PointerEventArgs e)
+        //{
+        //    insideImageArea = false;
+        //}
+        //private async Task UiHook()
+        //{
+        //    UioHookProvider.Instance.KeyTypedEnabled = false;
+        //    var hook = new EventLoopGlobalHook();
+
+        //    hook.MouseWheel += OnMouseWheel;
+        //    await hook.RunAsync();
+        //}
+
+        //private void OnMouseWheel(object? sender, MouseWheelHookEventArgs e)
+        //{
+        //    MainThread.BeginInvokeOnMainThread(() =>
+        //    {
+        //        if (!insideImageArea)
+        //        {
+        //            return;
+        //        }
+
+        //        var viewOriginOnScreen = GetAbsolutePosition(currentMode == 0 ? SingleView : MultiView);
+        //        var x = e.Data.X - viewOriginOnScreen.X;
+        //        var y = e.Data.Y - viewOriginOnScreen.Y;
+
+        //        Debug.WriteLine($"At {e.Data.X}, {e.Data.Y} zoomed for: {e.Data.Rotation}");
+
+        //        ZoomAtPoint(currentMode == 0 ? SingleView : MultiView, e.Data.Rotation, x, y);
+        //    });
+        //}
+
+        //// Calculate absolute position of a VisualElement (ContentView)
+        //private static Point GetAbsolutePosition(VisualElement element)
+        //{
+        //    double x = 0, y = 0;
+        //    while (element != null)
+        //    {
+        //        x += element.X;
+        //        y += element.Y;
+        //        if (element.Parent is VisualElement parent)
+        //        {
+        //            element = parent;
+        //        }
+        //        else
+        //        {
+        //            break;
+        //        }
+        //    }
+        //    return new Point(x, y);
+        //}
+
+        //private async void ZoomAtPoint(VisualElement view, double wheelDelta, double cx, double cy)
+        //{
+        //    double _minScale = 0.25;
+        //    double _maxScale = 10.0;
+        //    var oldScale = view.Scale;
+
+        //    // Wheel normalization (important)
+        //    var zoomFactor = 1 + (wheelDelta / 1200.0); // tune 1200..2000
+        //    var newScale = Math.Clamp(oldScale * zoomFactor, _minScale, _maxScale);
+
+        //    if (Math.Abs(newScale - oldScale) < 0.0001)
+        //        return;
+
+        //    // Current translation
+        //    var tx = view.TranslationX;
+        //    var ty = view.TranslationY;
+
+        //    // Core math
+        //    var newTx = cx - (newScale / oldScale) * (cx - tx);
+        //    var newTy = cy - (newScale / oldScale) * (cy - ty);
+
+        //    //view.Scale = newScale;
+        //    //view.TranslationX = newTx;
+        //    //view.TranslationY = newTy;
+
+        //    await view.TranslateToAsync(newTx, newTy, 60, Easing.CubicOut);
+        //    await view.ScaleToAsync(newScale, 60, Easing.CubicOut);
+        //}
+
+
+
+        // Pan Handling
+        double panX, panY;
+        private void OnPanUpdated(Object sender, PanUpdatedEventArgs e)
+        {
+            switch (e.StatusType)
+            {
+                case GestureStatus.Started:
+                    // Capture current translation (may have been set by zoom)
+                    panX = SingleView.TranslationX;
+                    panY = SingleView.TranslationY;
+                    break;
+
+                case GestureStatus.Running:
+                    // Translate and pan.
+                    double boundsX = SingleView.Width;
+                    double boundsY = SingleView.Height;
+                    SingleView.TranslationX = Math.Clamp(panX + e.TotalX, -boundsX, boundsX);
+                    SingleView.TranslationY = Math.Clamp(panY + e.TotalY, -boundsY, boundsY);
+                    break;
+
+                case GestureStatus.Completed:
+                    // Store the translation applied during the pan
+                    panX = SingleView.TranslationX;
+                    panY = SingleView.TranslationY;
+                    break;
+            }
+        }
+
+        private void resetImage()
+        {
+            panX = 0;
+            panY = 0;
+            SingleView.TranslationX = 0;
+            SingleView.TranslationY = 0;
+            SingleView.ScaleToAsync(1, 250, Easing.CubicInOut);
+        }
+
+        
     }
 }

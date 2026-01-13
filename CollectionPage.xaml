@@ -6,15 +6,22 @@
     <Grid>
 
         <!-- SINGLE IMAGE VIEW -->
-        <ContentView 
-        x:Name="SingleView"
-        IsVisible="True"
-        Scale="1">
+        <local:ZoomView
+            x:Name="SingleView"
+            IsVisible="True"
+            Scale="1">
             <Image
-                    Source="{Binding ImagePath}"
-                    Aspect="AspectFit" >
+                Source="{Binding ImagePath}"
+                Aspect="AspectFit" >
+                <Image.GestureRecognizers>
+                    <PanGestureRecognizer 
+                        PanUpdated="OnPanUpdated"/>
+                    <PointerGestureRecognizer 
+                        PointerEntered="OnPointerEntered"
+                        PointerExited="OnPointerExited"/>
+                </Image.GestureRecognizers>
             </Image>
-        </ContentView>
+        </local:ZoomView>
 
         <!-- MULTI IMAGE VIEW -->
         <CollectionView
@@ -28,11 +35,11 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate>
                     <Image
-                Source="{Binding .}"
-                Aspect="AspectFill"
-                Margin="1"
-                HorizontalOptions="FillAndExpand"
-                VerticalOptions="FillAndExpand" />
+                    Source="{Binding .}"
+                    Aspect="AspectFill"
+                    Margin="1"
+                    HorizontalOptions="FillAndExpand"
+                    VerticalOptions="FillAndExpand" />
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
@@ -44,35 +51,52 @@
             InputTransparent="True"
             CascadeInputTransparent="False"
             Padding="20">
-            
+
             <!-- Zoom In/Out Button -->
-            <StackLayout
+            <Grid
                 Grid.Row="0"
                 Grid.Column="0"
-                VerticalOptions="Start"
-                Orientation="Horizontal"
-                Spacing="10">
+                RowDefinitions="Auto, Auto"
+                ColumnDefinitions="Auto, Auto"
+                Padding="10"
+                VerticalOptions="Start">
+
+                <Button Text="↑"
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        x:Name="GoBiggerButton"
+                        Style="{StaticResource directionButton}"
+                        Clicked="BiggerGroupClicked"/>
+                <Button Text="↓"
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        x:Name="GoSmallerButton"
+                        Style="{StaticResource directionButton}"
+                        Clicked="SmallerGroupClicked"/>
+
 
                 <Button Text="+"
-                    x:Name="ZoomInButton"
-                    Style="{StaticResource directionButton}"
-                    Clicked="OnZoomInClicked"/>
+                        Grid.Row="1"
+                        Grid.Column="0"
+                        x:Name="ZoomIn"
+                        Style="{StaticResource directionButton}"
+                        Clicked="OnZoomInClicked"/>
                 <Button Text="-"
-                    x:Name="ZoomOutButton"
-                    Style="{StaticResource directionButton}"
-                    Clicked="OnZoomOutClicked"/>
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        x:Name="ZoomOut"
+                        Style="{StaticResource directionButton}"
+                        Clicked="OnZoomOutClicked"/>
+            </Grid>
 
-            </StackLayout>
-            
             <!-- Info Box-->
             <Label x:Name="Info"
-                    Text="Information"
-                    Grid.Row="0"
-                    Grid.Column="2"
-                    HorizontalOptions ="End"
-                    VerticalOptions ="Start"
-                    Style="{StaticResource infoLabel}"
-                    />
+                   Grid.Row="0"
+                   Grid.Column="2"
+                   Text="Information"
+                   HorizontalOptions ="End"
+                   VerticalOptions ="Start"
+                   Style="{StaticResource infoLabel}"/>
 
             <!-- Move Left/Right Buttons -->
             <Button 
@@ -114,7 +138,7 @@
             IsVisible="{Binding IsLoading}">
 
             <VerticalStackLayout
-            HorizontalOptions="Center"
+                    HorizontalOptions="Center"
             VerticalOptions="Center"
             Spacing="12"
             WidthRequest="300">
