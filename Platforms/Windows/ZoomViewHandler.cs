@@ -1,10 +1,9 @@
-﻿using Microsoft.Maui.Handlers;
+﻿using Microsoft.Maui.Devices;
+using Microsoft.Maui.Handlers;
 using Microsoft.Maui.Platform;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Diagnostics;
 
 //namespace app.Platforms.Windows
 namespace app
@@ -25,7 +24,7 @@ namespace app
 
         private void OnPointerWheelChanged(object sender, PointerRoutedEventArgs e)
         {
-            var point = e.GetCurrentPoint((Microsoft.UI.Xaml.UIElement)sender);
+            var point = e.GetCurrentPoint((UIElement)sender);
             var delta = point.Properties.MouseWheelDelta;
             var position = point.Position;
 
@@ -33,10 +32,12 @@ namespace app
             var mauiX = position.X / density;
             var mauiY = position.Y / density;
 
+            Debug.WriteLine($"ZoomViewHandler | Mouse Position: {position}, Wheel Delta: {delta}");
+
             if (VirtualView is ZoomView zoomView)
             {
-                zoomView.HandleWheel(delta, mauiX, mauiY);
                 //zoomView.HandleWheel(delta, position.X, position.Y);
+                zoomView.HandleWheel(delta, mauiX, mauiY);
             }
         }
     }

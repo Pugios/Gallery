@@ -1,17 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace app
 {
     public class ZoomView : ContentView
     {
+        public ZoomView()
+        {
+            AnchorX = 0;
+            AnchorY = 0;
+        }
+
         public void HandleWheel(double delta, double x, double y)
         {
             ZoomAtPoint(delta, x, y);
         }
 
-        void ZoomAtPoint(double delta, double cx, double cy)
+        void ZoomAtPoint(double delta, double x, double y)
         {
             var oldScale = Scale;
             var zoomFactor = 1 + (delta / 1200.0);
@@ -22,11 +29,15 @@ namespace app
 
             var tx = TranslationX;
             var ty = TranslationY;
-
             var scaleRatio = newScale / oldScale;
 
-            var newTx = cx - scaleRatio * (cx - tx);
-            var newTy = cy - scaleRatio * (cy - ty);
+            var newTx = x - scaleRatio * (x - tx);
+            var newTy = y - scaleRatio * (y - ty);
+
+            Debug.WriteLine($"ZoomView | " +
+                $"Scale: {oldScale} -> {newScale}, \n" +
+                $"Tx: {tx} -> {newTx}, \n" +
+                $"Ty: {ty} -> {newTy}");
 
             Scale = newScale;
             TranslationX = newTx;

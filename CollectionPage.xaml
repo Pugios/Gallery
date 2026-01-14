@@ -10,17 +10,16 @@
             x:Name="SingleView"
             IsVisible="True"
             Scale="1">
+            <local:ZoomView.GestureRecognizers>
+                <PanGestureRecognizer 
+                            PanUpdated="OnPanUpdated"/>
+                <PointerGestureRecognizer 
+                            PointerEntered="OnPointerEntered"
+                            PointerExited="OnPointerExited"/>
+            </local:ZoomView.GestureRecognizers>
             <Image
                 Source="{Binding ImagePath}"
-                Aspect="AspectFit" >
-                <Image.GestureRecognizers>
-                    <PanGestureRecognizer 
-                        PanUpdated="OnPanUpdated"/>
-                    <PointerGestureRecognizer 
-                        PointerEntered="OnPointerEntered"
-                        PointerExited="OnPointerExited"/>
-                </Image.GestureRecognizers>
-            </Image>
+                Aspect="AspectFit"/>
         </local:ZoomView>
 
         <!-- MULTI IMAGE VIEW -->

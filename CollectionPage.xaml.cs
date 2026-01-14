@@ -325,7 +325,7 @@ namespace app
         //              Zoom In/Out
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        //// Zoom Buttons
+        // Zoom Buttons
         //private void OnZoomInClicked(Object sender, EventArgs e)
         //{
         //    ZoomAtPoint(currentMode == 0 ? SingleView : MultiView, 360, 0, 0);
@@ -431,17 +431,19 @@ namespace app
             switch (e.StatusType)
             {
                 case GestureStatus.Started:
-                    // Capture current translation (may have been set by zoom)
                     panX = SingleView.TranslationX;
                     panY = SingleView.TranslationY;
                     break;
 
                 case GestureStatus.Running:
-                    // Translate and pan.
-                    double boundsX = SingleView.Width;
-                    double boundsY = SingleView.Height;
-                    SingleView.TranslationX = Math.Clamp(panX + e.TotalX, -boundsX, boundsX);
-                    SingleView.TranslationY = Math.Clamp(panY + e.TotalY, -boundsY, boundsY);
+                    var scaledWidth = SingleView.Width * SingleView.Scale;
+                    var scaledHeight = SingleView.Height * SingleView.Scale;
+
+                    var maxX = Math.Max(0, (scaledWidth - SingleView.Width) / 2);
+                    var maxY = Math.Max(0, (scaledHeight - SingleView.Height) / 2);
+
+                    SingleView.TranslationX = Math.Clamp(panX + e.TotalX, -maxX, maxX);
+                    SingleView.TranslationY = Math.Clamp(panY + e.TotalY, -maxY, maxY);
                     break;
 
                 case GestureStatus.Completed:
@@ -460,7 +462,5 @@ namespace app
             SingleView.TranslationY = 0;
             SingleView.ScaleToAsync(1, 250, Easing.CubicInOut);
         }
-
-        
     }
 }
