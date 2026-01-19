@@ -24,15 +24,13 @@ namespace app
 
         private void OnPointerWheelChanged(object sender, PointerRoutedEventArgs e)
         {
-            var point = e.GetCurrentPoint((UIElement)sender);
-            var delta = point.Properties.MouseWheelDelta;
-            var position = point.Position;
+            var pointer = e.GetCurrentPoint((UIElement)sender);
+            var delta = pointer.Properties.MouseWheelDelta;
+            var position = pointer.Position;
 
             var density = DeviceDisplay.MainDisplayInfo.Density;
             var mauiX = position.X / density;
             var mauiY = position.Y / density;
-
-            Debug.WriteLine($"ZoomViewHandler | Mouse Position: {position}, Wheel Delta: {delta}");
 
             if (VirtualView is ZoomView zoomView)
             {

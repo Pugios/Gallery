@@ -10,23 +10,30 @@
             x:Name="SingleView"
             IsVisible="True"
             Scale="1">
-            <local:ZoomView.GestureRecognizers>
-                <PanGestureRecognizer 
-                            PanUpdated="OnPanUpdated"/>
-                <PointerGestureRecognizer 
-                            PointerEntered="OnPointerEntered"
-                            PointerExited="OnPointerExited"/>
-            </local:ZoomView.GestureRecognizers>
             <Image
                 Source="{Binding ImagePath}"
-                Aspect="AspectFit"/>
+                Aspect="AspectFit">
+                <Image.GestureRecognizers>
+                    <PanGestureRecognizer 
+                        PanUpdated="OnPanUpdated"/>
+                    <PointerGestureRecognizer 
+                        PointerEntered="OnPointerEntered"
+                        PointerExited="OnPointerExited"/>
+                </Image.GestureRecognizers>
+            </Image>
         </local:ZoomView>
+
+        <!-- <ScrollView
+            ContentOrientation="None"
+            ZoomMode="Enabled">
+            <Image Source="{Binding ImagePath}"/>
+        </ScrollView> -->
 
         <!-- MULTI IMAGE VIEW -->
         <CollectionView
             x:Name="MultiView"
             IsVisible="False"
-            Scale="0.85"
+            Scale="1"
             ItemsSource="{Binding GroupImagePaths}">
             <CollectionView.ItemsLayout>
                 <GridItemsLayout x:Name="GIL"  Orientation="Vertical" Span="3" />

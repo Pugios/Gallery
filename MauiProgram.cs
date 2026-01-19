@@ -19,17 +19,17 @@ namespace app
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 })
-                # if WINDOWS
+                #if WINDOWS
                 .ConfigureMauiHandlers(handlers =>
                 {
                     handlers.AddHandler<ZoomView, ZoomViewHandler>();
                 })
-                # endif
+                #endif
                 ;
-
-#if DEBUG
+            
+            #if DEBUG
             builder.Logging.AddDebug();
-#endif
+            #endif
 
             return builder.Build();
         }

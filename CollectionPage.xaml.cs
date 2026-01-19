@@ -1,12 +1,10 @@
-using app;
 using app.Models;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
-using SharpHook;
-using SharpHook.Providers;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Threading.Tasks;
+using System.Globalization;
+using System.Linq;
 
 
 namespace app
@@ -32,9 +30,17 @@ namespace app
             await LoadImages();
             Progress = 1;
             IsLoading = false;
+
             showFirstImg();
             updateUI();
             //await UiHook();
+        }
+        private void showFirstImg()
+        {
+            if (imagePaths?.Count > 0)
+            {
+                ImagePath = imagePaths[0];
+            }
         }
 
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -66,14 +72,40 @@ namespace app
             }
         }
 
-        public ObservableCollection<string> imagePaths { get; } = new();    // ordered single-image list
-        private Dictionary<string, ImageMetadata> imageDataCache = new();   // Stores metadata for images
+
+        private int viewMode = 0; // 0 = Single Image View, 1 Day, 2 Week, 3 Month
+
+        private Dictionary<string, ImageMetadata> imageDataCache = new();   // Metadata for images
+        public ObservableCollection<string> imagePaths { get; } = new();        // Single View Ordered Image Paths
+        
+        private readonly Dictionary<DateTime, List<string>> dayGroups = new();  // day-based grouping
+        private readonly Dictionary<(int year, int week), List<string>> weekGroups = new(); // week-based grouping
+        private readonly Dictionary<(int year, int month), List<string>> monthGroups = new(); // month-based grouping
+
+        private List<DateTime> dayOrder = new(); // Ordered Days in dayGroups
+        private List<(int year, int week)> weekOrder = new(); // Ordered Weeks in weekGroups
+        private List<(int year, int month)> monthOrder = new(); // Ordered Months in monthGroups
+        
+        // Index of currently selected Group/Image 
+        private int currImgIndex = 0;
+        private int currDayIndex = 0;
+        private int currWeekIndex = 0;
+        private int currMonthIndex = 0;
 
         private async Task LoadImages()
         {
-            imagePaths.Clear();
             imageDataCache.Clear();
+            imagePaths.Clear();
+            
+            dayGroups.Clear();
+            weekGroups.Clear();
+            monthGroups.Clear();
 
+            dayOrder.Clear();
+            weekOrder.Clear();
+            monthOrder.Clear();
+
+            // Get all images in folder
             var files = System.IO.Directory.GetFiles(folderPath)
                              .Where(f =>
                                  f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)// ||
@@ -83,7 +115,7 @@ namespace app
                              .ToList();
 
 
-            // Add files to a collection bound to your CarouselView
+            // Read Metadata of Images
             imageDataCache = await Task.Run(() =>
             {
                 Dictionary<string, ImageMetadata> localImageDataCache = new Dictionary<string, ImageMetadata>();
@@ -100,14 +132,64 @@ namespace app
                 return localImageDataCache;
             });
 
-
+            // Add images to imagePaths sorted by DateTime
             foreach (string imagePath in imageDataCache.OrderBy(x => x.Value.DateTime).Select(x => x.Key))
             {
                 imagePaths.Add(imagePath);
             }
 
+            BuildGroupingIndexes();
 
             return;
+        }
+
+        Calendar calendar = System.Globalization.CultureInfo.InvariantCulture.Calendar; // for week calculations
+
+        private void BuildGroupingIndexes()
+        {
+            if (imagePaths.Count == 0)
+                return;
+            
+
+            // Go through each image and assign to groups
+            foreach (var path in imagePaths)
+            {
+                var date = imageDataCache[path].DateTime?.Date ?? DateTime.MinValue.Date;
+
+                // Day Groups
+                // if date not already in dict add it
+                if (!dayGroups.TryGetValue(date, out var listByDay))
+                {
+                    listByDay = new List<string>();
+                    dayGroups[date] = listByDay;
+                }
+                // add the image to the day's list
+                listByDay.Add(path);
+
+                // Week Groups
+                var week = calendar.GetWeekOfYear(date, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+                var weekKey = (date.Year, week);
+                if (!weekGroups.TryGetValue(weekKey, out var listByWeek))
+                {
+                    listByWeek = new List<string>();
+                    weekGroups[weekKey] = listByWeek;
+                }
+                listByWeek.Add(path);
+
+                // Month Groups
+                var month = date.Month;
+                var monthKey = (date.Year, month);
+                if (!monthGroups.TryGetValue(monthKey, out var listByMonth))
+                {
+                    listByMonth = new List<string>();
+                    monthGroups[monthKey] = listByMonth;
+                }
+                listByMonth.Add(path);
+            }
+
+            dayOrder = dayGroups.Keys.OrderBy(d => d).ToList();
+            weekOrder = weekGroups.Keys.OrderBy(d => d).ToList();
+            monthOrder = monthGroups.Keys.OrderBy(d => d).ToList();
         }
 
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -166,9 +248,10 @@ namespace app
             */
         }
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        //          Single Image View
+        //          Binding Views
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
+        // Single View
         private string _focusedImage = string.Empty;
         public string ImagePath
         {
@@ -180,21 +263,7 @@ namespace app
             }
         }
 
-        private int focusedIndex = 0;
-
-        private void showFirstImg()
-        {
-            if (imagePaths?.Count > 0)
-            {
-                focusedIndex = 0;
-                ImagePath = imagePaths[focusedIndex];
-            }
-        }
-
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        //          Multi Image View
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-
+        // Group View
         private List<string> _focusedGroup = new();
         public List<string> GroupImagePaths
         {
@@ -206,95 +275,154 @@ namespace app
             }
         }
 
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        //         Navigation
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
         private void UpdateGridLayout(int itemCount)
         {
-            var span = Math.Max(1, (int)Math.Round(Math.Sqrt(itemCount)));
-            GIL.Span = span;
-            Debug.WriteLine($"Grid has span of {span}");
+            GIL.Span = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(itemCount)));
         }
 
-        private List<string> getImagesOfDay()
+        private void BiggerGroupClicked(Object sender, EventArgs e)
         {
-            var date = imageDataCache[imagePaths[focusedIndex]].DateTime.GetValueOrDefault();
-            List<string> imagesOfDay = new List<string>();
-
-            if (imagePaths.Count == 0)
-                return imagesOfDay;
-
-            var currDay = imageDataCache[imagePaths[focusedIndex]].DateTime.GetValueOrDefault().Date;
-
-            foreach (var imagePath in imagePaths)
+            switch(viewMode)
             {
-                var imageDate = imageDataCache[imagePath].DateTime.GetValueOrDefault().Date;
-                Debug.WriteLine($"Comparing {imageDate} to {currDay}");
-                if (imageDate == currDay)
-                {
-                    imagesOfDay.Add(imagePath);
-                }
-            }
+                case 0:
+                    // Show Day
+                    DateTime currDay = imageDataCache[ImagePath].DateTime.GetValueOrDefault().Date;
+                    currDayIndex = dayOrder.IndexOf(currDay);
 
-            Debug.WriteLine($"Found {imagesOfDay.Count} images for day {currDay.ToShortDateString()}");
-            return imagesOfDay;
+                    GroupImagePaths = dayGroups[dayOrder[currDayIndex]];
+
+                    viewMode = 1;
+
+                    MultiView.IsVisible = true;
+                    SingleView.IsVisible = false;
+                    break;
+                case 1:
+                    // Show Week
+                    DateTime currWeek = imageDataCache[GroupImagePaths[0]].DateTime.GetValueOrDefault().Date;
+                    var week = calendar.GetWeekOfYear(currWeek, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+                    currWeekIndex = weekOrder.IndexOf((currWeek.Year, week));
+
+                    GroupImagePaths = weekGroups[weekOrder[currWeekIndex]];
+
+                    viewMode = 2;
+                    break;
+                case 2:
+                    // Show Month
+                    DateTime currMonth = imageDataCache[GroupImagePaths[0]].DateTime.GetValueOrDefault().Date;
+                    currMonthIndex = monthOrder.IndexOf((currMonth.Year, currMonth.Month));
+
+                    GroupImagePaths = monthGroups[monthOrder[currMonthIndex]];
+
+                    viewMode = 3;
+                    break;
+            }
+            updateUI();
         }
 
-        private void showCurrDay()
+        private void SmallerGroupClicked(Object sender, EventArgs e)
         {
-            List<string> dayList = getImagesOfDay();
-
-            if (dayList?.Count <= 0)
+            switch (viewMode)
             {
-                return;
-            }
+                case 1:
+                    // Day -> Single
+                    ImagePath = GroupImagePaths[0];
+                    currImgIndex = imagePaths.IndexOf(ImagePath);
 
-            UpdateGridLayout(dayList.Count);
-            GroupImagePaths = dayList;
-            return;
+                    viewMode = 0;
+
+                    MultiView.IsVisible = false;
+                    SingleView.IsVisible = true;
+                    break;
+                case 2:
+                    // Week -> Day
+                    string firstImgPathInWeek = weekGroups[weekOrder[currWeekIndex]][0];
+                    DateTime currDay = imageDataCache[firstImgPathInWeek].DateTime.GetValueOrDefault().Date;
+                    currDayIndex = dayOrder.IndexOf(currDay);
+
+                    GroupImagePaths = dayGroups[dayOrder[currDayIndex]];
+
+                    viewMode = 1;
+                    break;
+                case 3:
+                    // Month -> Week
+                    string firstImgPathInMonth = monthGroups[monthOrder[currMonthIndex]][0];
+                    DateTime currWeek = imageDataCache[firstImgPathInMonth].DateTime.GetValueOrDefault().Date;
+                    var week = calendar.GetWeekOfYear(currWeek, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+                    currWeekIndex = weekOrder.IndexOf((currWeek.Year, week));
+
+                    GroupImagePaths = weekGroups[weekOrder[currWeekIndex]];
+                    viewMode = 2;
+                    break;
+            }
+            updateUI();
         }
 
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        //                   UI
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
-
-        // Next / Previous Image
         private void OnNextClicked(object sender, EventArgs e)
         {
-            focusedIndex += 1;
-
-            if (focusedIndex >= imagePaths.Count)
+            switch (viewMode)
             {
-                focusedIndex = 0; // wrap
+                case 0:
+                    currImgIndex++;
+                    if (currImgIndex >= imagePaths.Count)
+                        currImgIndex = 0;
+                    ImagePath = imagePaths[currImgIndex];
+                    break;
+                case 1:
+                    currDayIndex++;
+                    if (currDayIndex >= dayOrder.Count)
+                        currDayIndex = 0;
+                    GroupImagePaths = dayGroups[dayOrder[currDayIndex]];
+                    break;
+                case 2:
+                    currWeekIndex++;
+                    if (currWeekIndex >= weekOrder.Count)
+                        currWeekIndex = 0;
+                    GroupImagePaths = weekGroups[weekOrder[currWeekIndex]];
+                    break;
+                case 3:
+                    currMonthIndex++;
+                    if (currMonthIndex >= monthOrder.Count)
+                        currMonthIndex = 0;
+                    GroupImagePaths = monthGroups[monthOrder[currMonthIndex]];
+                    break;
             }
             updateUI();
         }
 
         private void OnPrevClicked(object sender, EventArgs e)
         {
-            focusedIndex -= 1;
-            if (focusedIndex < 0)
+            switch (viewMode)
             {
-                focusedIndex = imagePaths.Count - 1;
+                case 0:
+                    currImgIndex--;
+                    if (currImgIndex < 0)
+                        currImgIndex = imagePaths.Count - 1;
+                    ImagePath = imagePaths[currImgIndex];
+                    break;
+                case 1:
+                    currDayIndex--;
+                    if (currDayIndex < 0)
+                        currDayIndex = dayOrder.Count - 1;
+                    GroupImagePaths = dayGroups[dayOrder[currDayIndex]];
+                    break;
+                case 2:
+                    currWeekIndex--;
+                    if (currWeekIndex < 0)
+                        currWeekIndex = weekOrder.Count - 1;
+                    GroupImagePaths = weekGroups[weekOrder[currWeekIndex]];
+                    break;
+                case 3:
+                    currMonthIndex--;
+                    if (currMonthIndex < 0)
+                        currMonthIndex = monthOrder.Count - 1;
+                    GroupImagePaths = monthGroups[monthOrder[currMonthIndex]];
+                    break;
             }
-
             updateUI();
-        }
-
-        // Switch Collection / Content View
-        int currentMode = 0;
-        private void BiggerGroupClicked(Object sender, EventArgs e)
-        {
-            showCurrDay();
-            MultiView.IsVisible = true;
-            SingleView.IsVisible = false;
-
-            currentMode = 1;
-        }
-
-        private void SmallerGroupClicked(Object sender, EventArgs e)
-        {
-            MultiView.IsVisible = false;
-            SingleView.IsVisible = true;
-
-            currentMode = 0;
         }
 
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -303,19 +431,20 @@ namespace app
 
         private void updateUI()
         {
-            ImagePath = imagePaths[focusedIndex];
+            //Info.Text = metadata.GetDisplayDate();
 
-            ImageMetadata metadata = imageDataCache.ContainsKey(imagePaths[focusedIndex]) ? imageDataCache[imagePaths[focusedIndex]] : readInfo(imagePaths[focusedIndex]);
+            //if (metadata.Location != null)
+            //{
+            //    string lat = metadata.Location.Latitude.ToString().Replace(",", ".");
+            //    string lon = metadata.Location.Longitude.ToString().Replace(",", ".");
 
-            Info.Text = metadata.GetDisplayDate();
+            //    Debug.WriteLine($"Updating Map Location to: {lat}, {lon}");
+            //    webView.EvaluateJavaScriptAsync($"updateMapLocation({lat}, {lon});");
+            //}
 
-            if (metadata.Location != null)
+            if (viewMode >= 1)
             {
-                string lat = metadata.Location.Latitude.ToString().Replace(",", ".");
-                string lon = metadata.Location.Longitude.ToString().Replace(",", ".");
-
-                Debug.WriteLine($"Updating Map Location to: {lat}, {lon}");
-                webView.EvaluateJavaScriptAsync($"updateMapLocation({lat}, {lon});");
+                UpdateGridLayout(GroupImagePaths.Count);
             }
 
             resetImage();
@@ -325,106 +454,20 @@ namespace app
         //              Zoom In/Out
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        // Zoom Buttons
-        //private void OnZoomInClicked(Object sender, EventArgs e)
-        //{
-        //    ZoomAtPoint(currentMode == 0 ? SingleView : MultiView, 360, 0, 0);
-        //}
-        //private void OnZoomOutClicked(Object sender, EventArgs e)
-        //{
-        //    ZoomAtPoint(currentMode == 0 ? SingleView : MultiView, -360, 0, 0);
-        //}
+        //Zoom Buttons
+        private void OnZoomInClicked(Object sender, EventArgs e)
+        {
+            SingleView.HandleWheel(360, 0.5, 0.5);
+        }
+        private void OnZoomOutClicked(Object sender, EventArgs e)
+        {
+            SingleView.HandleWheel(-360, 0.5, 0.5);
+        }
 
-        //// Mouse Wheel Zoom
-        //bool insideImageArea = false;
-        //private void OnPointerEntered(object sender, PointerEventArgs e)
-        //{
-        //    insideImageArea = true;
-        //}
-        //private void OnPointerExited(object sender, PointerEventArgs e)
-        //{
-        //    insideImageArea = false;
-        //}
-        //private async Task UiHook()
-        //{
-        //    UioHookProvider.Instance.KeyTypedEnabled = false;
-        //    var hook = new EventLoopGlobalHook();
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        //              Panning
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        //    hook.MouseWheel += OnMouseWheel;
-        //    await hook.RunAsync();
-        //}
-
-        //private void OnMouseWheel(object? sender, MouseWheelHookEventArgs e)
-        //{
-        //    MainThread.BeginInvokeOnMainThread(() =>
-        //    {
-        //        if (!insideImageArea)
-        //        {
-        //            return;
-        //        }
-
-        //        var viewOriginOnScreen = GetAbsolutePosition(currentMode == 0 ? SingleView : MultiView);
-        //        var x = e.Data.X - viewOriginOnScreen.X;
-        //        var y = e.Data.Y - viewOriginOnScreen.Y;
-
-        //        Debug.WriteLine($"At {e.Data.X}, {e.Data.Y} zoomed for: {e.Data.Rotation}");
-
-        //        ZoomAtPoint(currentMode == 0 ? SingleView : MultiView, e.Data.Rotation, x, y);
-        //    });
-        //}
-
-        //// Calculate absolute position of a VisualElement (ContentView)
-        //private static Point GetAbsolutePosition(VisualElement element)
-        //{
-        //    double x = 0, y = 0;
-        //    while (element != null)
-        //    {
-        //        x += element.X;
-        //        y += element.Y;
-        //        if (element.Parent is VisualElement parent)
-        //        {
-        //            element = parent;
-        //        }
-        //        else
-        //        {
-        //            break;
-        //        }
-        //    }
-        //    return new Point(x, y);
-        //}
-
-        //private async void ZoomAtPoint(VisualElement view, double wheelDelta, double cx, double cy)
-        //{
-        //    double _minScale = 0.25;
-        //    double _maxScale = 10.0;
-        //    var oldScale = view.Scale;
-
-        //    // Wheel normalization (important)
-        //    var zoomFactor = 1 + (wheelDelta / 1200.0); // tune 1200..2000
-        //    var newScale = Math.Clamp(oldScale * zoomFactor, _minScale, _maxScale);
-
-        //    if (Math.Abs(newScale - oldScale) < 0.0001)
-        //        return;
-
-        //    // Current translation
-        //    var tx = view.TranslationX;
-        //    var ty = view.TranslationY;
-
-        //    // Core math
-        //    var newTx = cx - (newScale / oldScale) * (cx - tx);
-        //    var newTy = cy - (newScale / oldScale) * (cy - ty);
-
-        //    //view.Scale = newScale;
-        //    //view.TranslationX = newTx;
-        //    //view.TranslationY = newTy;
-
-        //    await view.TranslateToAsync(newTx, newTy, 60, Easing.CubicOut);
-        //    await view.ScaleToAsync(newScale, 60, Easing.CubicOut);
-        //}
-
-
-
-        // Pan Handling
         double panX, panY;
         private void OnPanUpdated(Object sender, PanUpdatedEventArgs e)
         {
@@ -436,14 +479,11 @@ namespace app
                     break;
 
                 case GestureStatus.Running:
-                    var scaledWidth = SingleView.Width * SingleView.Scale;
-                    var scaledHeight = SingleView.Height * SingleView.Scale;
+                    double boundsX = SingleView.Width;
+                    double boundsY = SingleView.Height;
 
-                    var maxX = Math.Max(0, (scaledWidth - SingleView.Width) / 2);
-                    var maxY = Math.Max(0, (scaledHeight - SingleView.Height) / 2);
-
-                    SingleView.TranslationX = Math.Clamp(panX + e.TotalX, -maxX, maxX);
-                    SingleView.TranslationY = Math.Clamp(panY + e.TotalY, -maxY, maxY);
+                    SingleView.TranslationX = Math.Clamp(panX + e.TotalX, -boundsX, boundsX);
+                    SingleView.TranslationY = Math.Clamp(panY + e.TotalY, -boundsY, boundsY);
                     break;
 
                 case GestureStatus.Completed:
@@ -452,6 +492,8 @@ namespace app
                     panY = SingleView.TranslationY;
                     break;
             }
+
+            this.InvalidateMeasure();
         }
 
         private void resetImage()

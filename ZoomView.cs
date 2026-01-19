@@ -21,11 +21,8 @@ namespace app
         void ZoomAtPoint(double delta, double x, double y)
         {
             var oldScale = Scale;
-            var zoomFactor = 1 + (delta / 1200.0);
+            var zoomFactor = (delta / 1200.0) + 1; // On windows delta = 120 or -120
             var newScale = Math.Clamp(oldScale * zoomFactor, 0.25, 10);
-
-            if (Math.Abs(newScale - oldScale) < 0.0001)
-                return;
 
             var tx = TranslationX;
             var ty = TranslationY;
@@ -33,11 +30,6 @@ namespace app
 
             var newTx = x - scaleRatio * (x - tx);
             var newTy = y - scaleRatio * (y - ty);
-
-            Debug.WriteLine($"ZoomView | " +
-                $"Scale: {oldScale} -> {newScale}, \n" +
-                $"Tx: {tx} -> {newTx}, \n" +
-                $"Ty: {ty} -> {newTy}");
 
             Scale = newScale;
             TranslationX = newTx;
