@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 namespace app.Models
@@ -14,7 +15,7 @@ namespace app.Models
 
         public string GetDisplayDate()
         {
-            return DateTime?.ToString() ?? "No Date Found";
+            return DateTime?.ToString("D", CultureInfo.InvariantCulture) ?? "No Date Found";
         }
 
     }

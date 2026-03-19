@@ -13,6 +13,9 @@ namespace app
             AnchorY = 0;
         }
 
+        // Called when the user tries to zoom out beyond the minimum (scale = 1)
+        public Action? ZoomedOutBeyondMin { get; set; }
+
         public void HandleWheel(double delta, double x, double y)
         {
             ZoomAtPoint(delta, x, y);
@@ -22,7 +25,18 @@ namespace app
         {
             var oldScale = Scale;
             var zoomFactor = (delta / 1200.0) + 1; // On windows delta = 120 or -120
-            var newScale = Math.Clamp(oldScale * zoomFactor, 0.25, 10);
+            var desiredScale = oldScale * zoomFactor;
+
+            if (desiredScale < 1.0)
+            {
+                Scale = 1.0;
+                TranslationX = 0;
+                TranslationY = 0;
+                ZoomedOutBeyondMin?.Invoke();
+                return;
+            }
+
+            var newScale = Math.Clamp(desiredScale, 1.0, 10);
 
             var tx = TranslationX;
             var ty = TranslationY;

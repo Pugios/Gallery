@@ -2,7 +2,14 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:app"
-             x:Class="app.CollectionPage">
+             xmlns:converters="clr-namespace:app.Converters"
+             xmlns:shapes="clr-namespace:Microsoft.Maui.Controls.Shapes;assembly=Microsoft.Maui.Controls"
+             x:Class="app.CollectionPage"
+             x:Name="pageRef">
+    <ContentPage.Resources>
+        <converters:ThumbnailPathConverter x:Key="ThumbnailPathConverter"/>
+        <converters:MultiplyConverter x:Key="MultiplyConverter"/>
+    </ContentPage.Resources>
     <Grid>
 
         <!-- SINGLE IMAGE VIEW -->
@@ -30,25 +37,60 @@
         </ScrollView> -->
 
         <!-- MULTI IMAGE VIEW -->
-        <CollectionView
+        <ScrollView
             x:Name="MultiView"
-            IsVisible="False"
-            Scale="1"
-            ItemsSource="{Binding GroupImagePaths}">
-            <CollectionView.ItemsLayout>
-                <GridItemsLayout x:Name="GIL"  Orientation="Vertical" Span="3" />
-            </CollectionView.ItemsLayout>
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <Image
-                    Source="{Binding .}"
-                    Aspect="AspectFill"
-                    Margin="1"
-                    HorizontalOptions="FillAndExpand"
-                    VerticalOptions="FillAndExpand" />
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+            IsVisible="False">
+            <FlexLayout
+                Wrap="Wrap"
+                Direction="Row"
+                JustifyContent="Center"
+                BindableLayout.ItemsSource="{Binding GroupImageItems}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate>
+                        <Grid
+                            Margin="1"
+                            WidthRequest="{Binding CellSize, Source={x:Reference pageRef}}"
+                            HeightRequest="{Binding CellSize, Source={x:Reference pageRef}}">
+                            <Image
+                                Source="{Binding Path, Converter={StaticResource ThumbnailPathConverter}}"
+                                Aspect="AspectFill">
+                                <Image.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        NumberOfTapsRequired="1"
+                                        Tapped="OnImageSingleTapped"
+                                        CommandParameter="{Binding Path}"/>
+                                    <TapGestureRecognizer
+                                        NumberOfTapsRequired="2"
+                                        Tapped="OnImageDoubleTapped"
+                                        CommandParameter="{Binding Path}"/>
+                                </Image.GestureRecognizers>
+                            </Image>
+                            <Label
+                                Text="♥"
+                                IsVisible="{Binding IsLiked}"
+                                TextColor="White"
+                                FontSize="{Binding CellSize, Source={x:Reference pageRef}, Converter={StaticResource MultiplyConverter}, ConverterParameter='0.25'}"
+                                HorizontalOptions="Start"
+                                VerticalOptions="End"
+                                Margin="4,0,0,4"
+                                InputTransparent="True">
+                                <Label.Shadow>
+                                    <Shadow Brush="Black" Offset="1,1" Radius="2" Opacity="0.8"/>
+                                </Label.Shadow>
+                            </Label>
+                            <shapes:Rectangle
+                                IsVisible="{Binding IsSelected}"
+                                Fill="Transparent"
+                                Stroke="CornflowerBlue"
+                                StrokeThickness="4"
+                                InputTransparent="True"
+                                HorizontalOptions="Fill"
+                                VerticalOptions="Fill"/>
+                        </Grid>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </FlexLayout>
+        </ScrollView>
 
         <!-- UI -->
         <Grid
@@ -80,19 +122,12 @@
                         Style="{StaticResource directionButton}"
                         Clicked="SmallerGroupClicked"/>
 
-
-                <Button Text="+"
+                <Button Text="{Binding LikeButtonText}"
                         Grid.Row="1"
                         Grid.Column="0"
-                        x:Name="ZoomIn"
+                        Grid.ColumnSpan="2"
                         Style="{StaticResource directionButton}"
-                        Clicked="OnZoomInClicked"/>
-                <Button Text="-"
-                        Grid.Row="1"
-                        Grid.Column="1"
-                        x:Name="ZoomOut"
-                        Style="{StaticResource directionButton}"
-                        Clicked="OnZoomOutClicked"/>
+                        Clicked="OnLikeClicked"/>
             </Grid>
 
             <!-- Info Box-->
@@ -124,14 +159,15 @@
                 Clicked="OnNextClicked"/>
 
             <!-- Map -->
-            <WebView 
+            <WebView
                 Grid.Row="2"
                 Grid.Column="2"
                 x:Name="webView"
                 HorizontalOptions="End"
                 VerticalOptions="End"
                 HeightRequest="200"
-                WidthRequest="200">
+                WidthRequest="200"
+                Navigated="OnMapNavigated">
                 <WebView.Source>
                     <UrlWebViewSource Url="map.html"/>
                 </WebView.Source>
