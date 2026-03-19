@@ -21,11 +21,11 @@
                 Source="{Binding ImagePath}"
                 Aspect="AspectFit">
                 <Image.GestureRecognizers>
-                    <PanGestureRecognizer 
+                    <PanGestureRecognizer
                         PanUpdated="OnPanUpdated"/>
-                    <PointerGestureRecognizer 
-                        PointerEntered="OnPointerEntered"
-                        PointerExited="OnPointerExited"/>
+                    <TapGestureRecognizer
+                        NumberOfTapsRequired="2"
+                        Tapped="OnSingleViewDoubleTapped"/>
                 </Image.GestureRecognizers>
             </Image>
         </local:ZoomView>
@@ -57,11 +57,7 @@
                                 <Image.GestureRecognizers>
                                     <TapGestureRecognizer
                                         NumberOfTapsRequired="1"
-                                        Tapped="OnImageSingleTapped"
-                                        CommandParameter="{Binding Path}"/>
-                                    <TapGestureRecognizer
-                                        NumberOfTapsRequired="2"
-                                        Tapped="OnImageDoubleTapped"
+                                        Tapped="OnImageTapped"
                                         CommandParameter="{Binding Path}"/>
                                 </Image.GestureRecognizers>
                             </Image>
@@ -107,7 +103,9 @@
                 RowDefinitions="Auto, Auto"
                 ColumnDefinitions="Auto, Auto"
                 Padding="10"
-                VerticalOptions="Start">
+                VerticalOptions="Start"
+                InputTransparent="True"
+                CascadeInputTransparent="False">
 
                 <Button Text="↑"
                         Grid.Row="0"

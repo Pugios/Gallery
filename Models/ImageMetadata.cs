@@ -5,7 +5,7 @@ using System.Text;
 
 namespace app.Models
 {
-    internal class ImageMetadata
+    public class ImageMetadata
     {
         public string FilePath { get; set; }
         public DateTime? DateTime { get; set; }
@@ -20,7 +20,7 @@ namespace app.Models
 
     }
 
-    internal class GpsCoordinates
+    public class GpsCoordinates
     {
         public double Latitude { get; set; }
         public double Longitude { get; set; }

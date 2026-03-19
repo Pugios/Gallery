@@ -1,93 +1,63 @@
 using app.Models;
 using app.Services;
-using MetadataExtractor;
 using System.Collections.ObjectModel;
-using MetadataExtractor.Formats.Exif;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
-
 
 namespace app
 {
     public partial class CollectionPage : ContentPage, IQueryAttributable
     {
-
-        private static readonly string LikesFilePath =
-            Path.Combine(FileSystem.AppDataDirectory, "likes.json");
-
         public CollectionPage()
         {
             InitializeComponent();
             BindingContext = this;
             SingleView.ZoomedOutBeyondMin = () => BiggerGroupClicked(null, EventArgs.Empty);
-            LoadLikes();
+            _likedPaths = LikeService.Load();
         }
 
-        private void LoadLikes()
-        {
-            try
-            {
-                if (File.Exists(LikesFilePath))
-                {
-                    var json = File.ReadAllText(LikesFilePath);
-                    var paths = System.Text.Json.JsonSerializer.Deserialize<List<string>>(json);
-                    if (paths != null)
-                        foreach (var path in paths)
-                            _likedPaths.Add(path);
-                }
-            }
-            catch { }
-        }
+        // ── Folder loading ────────────────────────────────────────────────
 
-        private void SaveLikes()
-        {
-            try
-            {
-                var json = System.Text.Json.JsonSerializer.Serialize(_likedPaths.ToList());
-                File.WriteAllText(LikesFilePath, json);
-            }
-            catch { }
-        }
+        protected string FolderPath { get; private set; } = string.Empty;
 
-        // Accept Query Data aka. Folder Path of Images
-        protected string folderPath { get; private set; }
         public async void ApplyQueryAttributes(IDictionary<string, object> query)
         {
             IsLoading = true;
             Progress = 0;
 
-            folderPath = Uri.UnescapeDataString(query["folderPath"] as string);
+            FolderPath = Uri.UnescapeDataString(query["folderPath"] as string ?? string.Empty);
 
-            await LoadImages();
+            var progressReporter = new Progress<double>(p =>
+                MainThread.BeginInvokeOnMainThread(() => Progress = p));
+
+            var data = await ImageLoadingService.LoadFolderAsync(FolderPath, progressReporter);
+
+            _imageDataCache = data.ImageDataCache;
+            foreach (var path in data.ImagePaths)
+                ImagePaths.Add(path);
+
+            _dayGroups   = data.DayGroups;
+            _weekGroups  = data.WeekGroups;
+            _monthGroups = data.MonthGroups;
+            _dayOrder    = data.DayOrder;
+            _weekOrder   = data.WeekOrder;
+            _monthOrder  = data.MonthOrder;
+
             Progress = 1;
             IsLoading = false;
 
-            showFirstImg();
-            updateUI();
-        }
-        private void showFirstImg()
-        {
-            if (imagePaths?.Count > 0)
-            {
-                ImagePath = imagePaths[0];
-            }
+            if (ImagePaths.Count > 0)
+                ImagePath = ImagePaths[0];
+
+            UpdateUI();
         }
 
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        //               Load Images
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        // Loading Animation
+        // ── Loading progress ──────────────────────────────────────────────
+
         private bool _isLoading;
         public bool IsLoading
         {
             get => _isLoading;
-            set
-            {
-                _isLoading = value;
-                OnPropertyChanged(nameof(IsLoading));
-            }
+            set { _isLoading = value; OnPropertyChanged(nameof(IsLoading)); }
         }
 
         private double _progress;
@@ -96,28 +66,38 @@ namespace app
             get => _progress;
             set
             {
-                if (_progress == value)
-                    return;
-
+                if (_progress == value) return;
                 _progress = value;
                 OnPropertyChanged(nameof(Progress));
             }
         }
 
+        // ── Data ──────────────────────────────────────────────────────────
 
-        private int viewMode = 0; // 0 = Single Image View, 1 Day, 2 Week, 3 Month
+        private Dictionary<string, ImageMetadata> _imageDataCache = new();
+        public ObservableCollection<string> ImagePaths { get; } = new();
 
-        private Dictionary<string, ImageMetadata> imageDataCache = new();   // Metadata for images
-        public ObservableCollection<string> imagePaths { get; } = new();        // Single View Ordered Image Paths
-        
-        private readonly Dictionary<DateTime, List<string>> dayGroups = new();  // day-based grouping
-        private readonly Dictionary<(int year, int week), List<string>> weekGroups = new(); // week-based grouping
-        private readonly Dictionary<(int year, int month), List<string>> monthGroups = new(); // month-based grouping
+        private Dictionary<DateTime, List<string>> _dayGroups   = new();
+        private Dictionary<(int year, int week), List<string>> _weekGroups  = new();
+        private Dictionary<(int year, int month), List<string>> _monthGroups = new();
 
-        private List<DateTime> dayOrder = new(); // Ordered Days in dayGroups
-        private List<(int year, int week)> weekOrder = new(); // Ordered Weeks in weekGroups
-        private List<(int year, int month)> monthOrder = new(); // Ordered Months in monthGroups
-        
+        private List<DateTime> _dayOrder   = new();
+        private List<(int year, int week)> _weekOrder  = new();
+        private List<(int year, int month)> _monthOrder = new();
+
+        // ── View state ────────────────────────────────────────────────────
+
+        private ViewMode _viewMode = ViewMode.Single;
+
+        private int _currImgIndex   = 0;
+        private int _currDayIndex   = 0;
+        private int _currWeekIndex  = 0;
+        private int _currMonthIndex = 0;
+
+        // ── Cell sizing ───────────────────────────────────────────────────
+
+        private int _currentSpan = 3;
+
         private double _cellSize = 150;
         public double CellSize
         {
@@ -125,198 +105,24 @@ namespace app
             set { _cellSize = value; OnPropertyChanged(nameof(CellSize)); }
         }
 
-        private int _currentSpan = 3;
-
         protected override void OnSizeAllocated(double width, double height)
         {
             base.OnSizeAllocated(width, height);
-            if (width > 0 && height > 0 && viewMode >= 1)
+            if (width > 0 && height > 0 && _viewMode != ViewMode.Single)
                 UpdateCellSize(width, height, GroupImagePaths.Count);
         }
 
         private void UpdateCellSize(double width, double height, int count)
         {
             if (width <= 0 || height <= 0 || count == 0) return;
-
-            // Find the number of columns that best matches the screen aspect ratio
             int cols = Math.Max(1, (int)Math.Round(Math.Sqrt(count * width / height)));
             int rows = (int)Math.Ceiling((double)count / cols);
-
-            // Constrain cell size so all rows and columns fit on screen
-            double cellSize = Math.Min(width / cols, height / rows);
-
             _currentSpan = cols;
-            CellSize = cellSize;
+            CellSize = Math.Min(width / cols, height / rows);
         }
 
-        // Index of currently selected Group/Image
-        private int currImgIndex = 0;
-        private int currDayIndex = 0;
-        private int currWeekIndex = 0;
-        private int currMonthIndex = 0;
+        // ── Bound properties ──────────────────────────────────────────────
 
-        private async Task LoadImages()
-        {
-            imageDataCache.Clear();
-            imagePaths.Clear();
-            
-            dayGroups.Clear();
-            weekGroups.Clear();
-            monthGroups.Clear();
-
-            dayOrder.Clear();
-            weekOrder.Clear();
-            monthOrder.Clear();
-
-            // Get all images in folder
-            var files = System.IO.Directory.GetFiles(folderPath)
-                             .Where(f =>
-                                 f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)// ||
-                                                                                       //f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
-                                                                                       //f.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)
-                                 )
-                             .ToList();
-
-
-            // Read Metadata of Images
-            imageDataCache = await Task.Run(() =>
-            {
-                Dictionary<string, ImageMetadata> localImageDataCache = new Dictionary<string, ImageMetadata>();
-
-                foreach (var file in files)
-                {
-                    ImageMetadata metadata = readInfo(file);
-                    ThumbnailService.GenerateThumbnail(file);
-                    localImageDataCache.Add(file, metadata);
-
-                    double progress = (double)localImageDataCache.Count / files.Count;
-                    MainThread.BeginInvokeOnMainThread(() => { Progress = progress; });
-                }
-
-                return localImageDataCache;
-            });
-
-            // Add images to imagePaths sorted by DateTime
-            foreach (string imagePath in imageDataCache.OrderBy(x => x.Value.DateTime).Select(x => x.Key))
-            {
-                imagePaths.Add(imagePath);
-            }
-
-            BuildGroupingIndexes();
-
-            return;
-        }
-
-        Calendar calendar = System.Globalization.CultureInfo.InvariantCulture.Calendar; // for week calculations
-
-        private void BuildGroupingIndexes()
-        {
-            if (imagePaths.Count == 0)
-                return;
-            
-
-            // Go through each image and assign to groups
-            foreach (var path in imagePaths)
-            {
-                var date = imageDataCache[path].DateTime?.Date ?? DateTime.MinValue.Date;
-
-                // Day Groups
-                // if date not already in dict add it
-                if (!dayGroups.TryGetValue(date, out var listByDay))
-                {
-                    listByDay = new List<string>();
-                    dayGroups[date] = listByDay;
-                }
-                // add the image to the day's list
-                listByDay.Add(path);
-
-                // Week Groups
-                var week = calendar.GetWeekOfYear(date, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
-                var weekKey = (date.Year, week);
-                if (!weekGroups.TryGetValue(weekKey, out var listByWeek))
-                {
-                    listByWeek = new List<string>();
-                    weekGroups[weekKey] = listByWeek;
-                }
-                listByWeek.Add(path);
-
-                // Month Groups
-                var month = date.Month;
-                var monthKey = (date.Year, month);
-                if (!monthGroups.TryGetValue(monthKey, out var listByMonth))
-                {
-                    listByMonth = new List<string>();
-                    monthGroups[monthKey] = listByMonth;
-                }
-                listByMonth.Add(path);
-            }
-
-            dayOrder = dayGroups.Keys.OrderBy(d => d).ToList();
-            // Pretty sure this is wrong. Keys are (year, week)/(year, month) tuples, can't just order by d => d
-            weekOrder = weekGroups.Keys.OrderBy(d => d).ToList();
-            monthOrder = monthGroups.Keys.OrderBy(d => d).ToList();
-        }
-
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        //              EXIF Data Reading
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
-        private ImageMetadata readInfo(string imagePath)
-        {
-            // Check if we already have the date cached
-            if (imageDataCache.TryGetValue(imagePath, out var cachedMetadata))
-            {
-                return cachedMetadata;
-            }
-
-            ImageMetadata metadata = new ImageMetadata { FilePath = imagePath };
-
-            IEnumerable<MetadataExtractor.Directory> directories = ImageMetadataReader.ReadMetadata(imagePath);
-
-            // Read Date/
-            var exifSubIfd = directories.OfType<ExifSubIfdDirectory>().FirstOrDefault();
-
-            if (exifSubIfd?.TryGetDateTime(ExifDirectoryBase.TagDateTimeOriginal, out DateTime dateTimeOriginal) ?? false)
-            {
-                metadata.DateTime = dateTimeOriginal;
-            }
-
-            // Read GPS
-            var gpsDirectory = directories.OfType<GpsDirectory>().FirstOrDefault();
-
-            if (gpsDirectory?.TryGetGeoLocation(out var geoLocation) ?? false)
-            {
-                metadata.Location = new GpsCoordinates()
-                {
-                    Latitude = geoLocation.Latitude,
-                    Longitude = geoLocation.Longitude
-                };
-            }
-
-            // Image Direction
-            if (gpsDirectory?.TryGetDouble(GpsDirectory.TagImgDirection, out double direction) ?? false)
-            {
-                metadata.ImageDirection = direction;
-
-                // Magnetic Direction
-                var directionRef = gpsDirectory.GetString(GpsDirectory.TagImgDirectionRef);
-                metadata.IsMagneticDirection = directionRef == "M";
-            }
-
-            return metadata;
-            /*
-            Debug.WriteLine($"Data for {imagePath}");
-            foreach (var directory in directories)
-                foreach (var tag in directory.Tags)
-                {
-                    Debug.WriteLine($"Directory {directory.Name} - Tag {tag.Name} = {tag.Description}");
-                }
-            */
-        }
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        //          Binding Views
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-
-        // Single View
         private string _focusedImage = string.Empty;
         public string ImagePath
         {
@@ -331,7 +137,6 @@ namespace app
 
         public string LikeButtonText => _likedPaths.Contains(_focusedImage) ? "♥" : "♡";
 
-        // Group View
         private List<string> _focusedGroup = new();
         public List<string> GroupImagePaths
         {
@@ -355,10 +160,10 @@ namespace app
                 GroupImageItems.Add(new ImageItemViewModel(path) { IsLiked = _likedPaths.Contains(path) });
         }
 
-        // Selection
+        // ── Selection ─────────────────────────────────────────────────────
+
         private readonly HashSet<string> _selectedPaths = new();
-        private readonly HashSet<string> _likedPaths = new();
-        private string? _lastSelectedPath = null;
+        private string? _lastSelectedPath;
 
         private void UpdateSelectionUI()
         {
@@ -374,101 +179,208 @@ namespace app
             UpdateSelectionUI();
         }
 
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        //         Navigation
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+        // ── Likes ─────────────────────────────────────────────────────────
 
-        private void BiggerGroupClicked(Object sender, EventArgs e)
+        private readonly HashSet<string> _likedPaths = new();
+
+        private void OnLikeClicked(object sender, EventArgs e)
         {
-            switch(viewMode)
+            if (_viewMode == ViewMode.Single)
             {
-                case 0:
-                    // Show Day
-                    DateTime currDay = imageDataCache[ImagePath].DateTime.GetValueOrDefault().Date;
-                    currDayIndex = dayOrder.IndexOf(currDay);
+                if (!_likedPaths.Remove(_focusedImage))
+                    _likedPaths.Add(_focusedImage);
+                OnPropertyChanged(nameof(LikeButtonText));
+            }
+            else
+            {
+                bool allLiked = _selectedPaths.Count > 0 && _selectedPaths.All(p => _likedPaths.Contains(p));
+                if (allLiked)
+                    foreach (var path in _selectedPaths) _likedPaths.Remove(path);
+                else
+                    foreach (var path in _selectedPaths) _likedPaths.Add(path);
 
-                    GroupImagePaths = dayGroups[dayOrder[currDayIndex]];
+                foreach (var item in GroupImageItems)
+                    item.IsLiked = _likedPaths.Contains(item.Path);
+            }
 
-                    viewMode = 1;
+            LikeService.Save(_likedPaths);
+        }
 
+        // ── Navigation ────────────────────────────────────────────────────
+
+        private void BiggerGroupClicked(object? sender, EventArgs e)
+        {
+            switch (_viewMode)
+            {
+                case ViewMode.Single:
+                    var day = _imageDataCache[ImagePath].DateTime.GetValueOrDefault().Date;
+                    _currDayIndex = _dayOrder.IndexOf(day);
+                    GroupImagePaths = _dayGroups[_dayOrder[_currDayIndex]];
+                    _viewMode = ViewMode.Day;
                     MultiView.IsVisible = true;
                     SingleView.IsVisible = false;
                     SingleView.Opacity = 0;
-                    updateUI();
+                    UpdateUI();
                     SelectPath(ImagePath);
                     return;
-                case 1:
-                    // Show Week
-                    DateTime currWeek = imageDataCache[GroupImagePaths[0]].DateTime.GetValueOrDefault().Date;
-                    var week = calendar.GetWeekOfYear(currWeek, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
-                    currWeekIndex = weekOrder.IndexOf((currWeek.Year, week));
 
-                    GroupImagePaths = weekGroups[weekOrder[currWeekIndex]];
-
-                    viewMode = 2;
+                case ViewMode.Day:
+                    var weekDate = _imageDataCache[GroupImagePaths[0]].DateTime.GetValueOrDefault().Date;
+                    _currWeekIndex = _weekOrder.IndexOf((weekDate.Year, ImageLoadingService.GetWeekNumber(weekDate)));
+                    GroupImagePaths = _weekGroups[_weekOrder[_currWeekIndex]];
+                    _viewMode = ViewMode.Week;
                     break;
-                case 2:
-                    // Show Month
-                    DateTime currMonth = imageDataCache[GroupImagePaths[0]].DateTime.GetValueOrDefault().Date;
-                    currMonthIndex = monthOrder.IndexOf((currMonth.Year, currMonth.Month));
 
-                    GroupImagePaths = monthGroups[monthOrder[currMonthIndex]];
-
-                    viewMode = 3;
+                case ViewMode.Week:
+                    var monthDate = _imageDataCache[GroupImagePaths[0]].DateTime.GetValueOrDefault().Date;
+                    _currMonthIndex = _monthOrder.IndexOf((monthDate.Year, monthDate.Month));
+                    GroupImagePaths = _monthGroups[_monthOrder[_currMonthIndex]];
+                    _viewMode = ViewMode.Month;
                     break;
             }
-            updateUI();
+            UpdateUI();
         }
 
         private async Task GoToSingleView(string imagePath)
         {
             SingleView.Opacity = 0;
-            currImgIndex = imagePaths.IndexOf(imagePath);
+            _currImgIndex = ImagePaths.IndexOf(imagePath);
             ImagePath = imagePath;
-            viewMode = 0;
+            _viewMode = ViewMode.Single;
             MultiView.IsVisible = false;
             SingleView.IsVisible = true;
-            updateUI();
+            UpdateUI();
             await SingleView.FadeTo(1, 200, Easing.CubicIn);
         }
 
-        private async void SmallerGroupClicked(Object sender, EventArgs e)
+        private async void SmallerGroupClicked(object? sender, EventArgs e)
         {
-            switch (viewMode)
+            switch (_viewMode)
             {
-                case 1:
-                    // Day -> Single
+                case ViewMode.Day:
                     await GoToSingleView(GroupImagePaths[0]);
                     return;
-                case 2:
-                    // Week -> Day
-                    string firstImgPathInWeek = weekGroups[weekOrder[currWeekIndex]][0];
-                    DateTime currDay = imageDataCache[firstImgPathInWeek].DateTime.GetValueOrDefault().Date;
-                    currDayIndex = dayOrder.IndexOf(currDay);
 
-                    GroupImagePaths = dayGroups[dayOrder[currDayIndex]];
-
-                    viewMode = 1;
+                case ViewMode.Week:
+                    var dayDate = _imageDataCache[_weekGroups[_weekOrder[_currWeekIndex]][0]].DateTime.GetValueOrDefault().Date;
+                    _currDayIndex = _dayOrder.IndexOf(dayDate);
+                    GroupImagePaths = _dayGroups[_dayOrder[_currDayIndex]];
+                    _viewMode = ViewMode.Day;
                     break;
-                case 3:
-                    // Month -> Week
-                    string firstImgPathInMonth = monthGroups[monthOrder[currMonthIndex]][0];
-                    DateTime currWeek = imageDataCache[firstImgPathInMonth].DateTime.GetValueOrDefault().Date;
-                    var week = calendar.GetWeekOfYear(currWeek, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
-                    currWeekIndex = weekOrder.IndexOf((currWeek.Year, week));
 
-                    GroupImagePaths = weekGroups[weekOrder[currWeekIndex]];
-                    viewMode = 2;
+                case ViewMode.Month:
+                    var weekDate = _imageDataCache[_monthGroups[_monthOrder[_currMonthIndex]][0]].DateTime.GetValueOrDefault().Date;
+                    _currWeekIndex = _weekOrder.IndexOf((weekDate.Year, ImageLoadingService.GetWeekNumber(weekDate)));
+                    GroupImagePaths = _weekGroups[_weekOrder[_currWeekIndex]];
+                    _viewMode = ViewMode.Week;
                     break;
             }
-            updateUI();
+            UpdateUI();
         }
 
-        private void OnImageSingleTapped(object sender, TappedEventArgs e)
+        private void OnNextClicked(object sender, EventArgs e)
+        {
+            switch (_viewMode)
+            {
+                case ViewMode.Single:
+                    _currImgIndex = (_currImgIndex + 1) % ImagePaths.Count;
+                    ImagePath = ImagePaths[_currImgIndex];
+                    break;
+                case ViewMode.Day:
+                    _currDayIndex = (_currDayIndex + 1) % _dayOrder.Count;
+                    GroupImagePaths = _dayGroups[_dayOrder[_currDayIndex]];
+                    break;
+                case ViewMode.Week:
+                    _currWeekIndex = (_currWeekIndex + 1) % _weekOrder.Count;
+                    GroupImagePaths = _weekGroups[_weekOrder[_currWeekIndex]];
+                    break;
+                case ViewMode.Month:
+                    _currMonthIndex = (_currMonthIndex + 1) % _monthOrder.Count;
+                    GroupImagePaths = _monthGroups[_monthOrder[_currMonthIndex]];
+                    break;
+            }
+            UpdateUI();
+        }
+
+        private void OnPrevClicked(object sender, EventArgs e)
+        {
+            switch (_viewMode)
+            {
+                case ViewMode.Single:
+                    _currImgIndex = (_currImgIndex - 1 + ImagePaths.Count) % ImagePaths.Count;
+                    ImagePath = ImagePaths[_currImgIndex];
+                    break;
+                case ViewMode.Day:
+                    _currDayIndex = (_currDayIndex - 1 + _dayOrder.Count) % _dayOrder.Count;
+                    GroupImagePaths = _dayGroups[_dayOrder[_currDayIndex]];
+                    break;
+                case ViewMode.Week:
+                    _currWeekIndex = (_currWeekIndex - 1 + _weekOrder.Count) % _weekOrder.Count;
+                    GroupImagePaths = _weekGroups[_weekOrder[_currWeekIndex]];
+                    break;
+                case ViewMode.Month:
+                    _currMonthIndex = (_currMonthIndex - 1 + _monthOrder.Count) % _monthOrder.Count;
+                    GroupImagePaths = _monthGroups[_monthOrder[_currMonthIndex]];
+                    break;
+            }
+            UpdateUI();
+        }
+
+        // ── Tap handling (single handler to avoid double-tap delay) ──────
+
+        private string? _lastTappedPath;
+        private DateTime _lastTapTime = DateTime.MinValue;
+        private const int DoubleTapMs = 300;
+
+        private async void OnImageTapped(object sender, TappedEventArgs e)
         {
             if (e.Parameter is not string imagePath) return;
 
-            bool ctrl = KeyboardHelper.IsControlPressed();
+            var now = DateTime.UtcNow;
+            bool isDouble = imagePath == _lastTappedPath &&
+                            (now - _lastTapTime).TotalMilliseconds <= DoubleTapMs;
+
+            _lastTappedPath = imagePath;
+            _lastTapTime    = now;
+
+            if (isDouble)
+            {
+                await HandleDoubleTap(imagePath);
+            }
+            else
+            {
+                HandleSingleTap(imagePath);
+            }
+        }
+
+        private async Task HandleDoubleTap(string imagePath)
+        {
+            var date = _imageDataCache[imagePath].DateTime.GetValueOrDefault().Date;
+
+            switch (_viewMode)
+            {
+                case ViewMode.Month:
+                    _currWeekIndex = _weekOrder.IndexOf((date.Year, ImageLoadingService.GetWeekNumber(date)));
+                    GroupImagePaths = _weekGroups[_weekOrder[_currWeekIndex]];
+                    _viewMode = ViewMode.Week;
+                    break;
+                case ViewMode.Week:
+                    _currDayIndex = _dayOrder.IndexOf(date);
+                    GroupImagePaths = _dayGroups[_dayOrder[_currDayIndex]];
+                    _viewMode = ViewMode.Day;
+                    break;
+                case ViewMode.Day:
+                    await GoToSingleView(imagePath);
+                    return;
+            }
+
+            UpdateUI();
+            SelectPath(imagePath);
+        }
+
+        private void HandleSingleTap(string imagePath)
+        {
+            bool ctrl  = KeyboardHelper.IsControlPressed();
             bool shift = KeyboardHelper.IsShiftPressed();
 
             if (ctrl)
@@ -480,7 +392,7 @@ namespace app
             else if (shift && _lastSelectedPath != null)
             {
                 int start = _focusedGroup.IndexOf(_lastSelectedPath);
-                int end = _focusedGroup.IndexOf(imagePath);
+                int end   = _focusedGroup.IndexOf(imagePath);
                 if (start > end) (start, end) = (end, start);
                 for (int i = start; i <= end; i++)
                     _selectedPaths.Add(_focusedGroup[i]);
@@ -495,179 +407,38 @@ namespace app
             UpdateSelectionUI();
         }
 
-        private void OnLikeClicked(object sender, EventArgs e)
+        // ── UI update ─────────────────────────────────────────────────────
+
+        private void UpdateUI()
         {
-            if (viewMode == 0)
+            switch (_viewMode)
             {
-                // Toggle like for current single image
-                if (!_likedPaths.Remove(_focusedImage))
-                    _likedPaths.Add(_focusedImage);
-                OnPropertyChanged(nameof(LikeButtonText));
-            }
-            else
-            {
-                // If all selected are already liked, unlike them; otherwise like all
-                bool allLiked = _selectedPaths.Count > 0 && _selectedPaths.All(p => _likedPaths.Contains(p));
-                if (allLiked)
-                    foreach (var path in _selectedPaths)
-                        _likedPaths.Remove(path);
-                else
-                    foreach (var path in _selectedPaths)
-                        _likedPaths.Add(path);
-
-                foreach (var item in GroupImageItems)
-                    item.IsLiked = _likedPaths.Contains(item.Path);
+                case ViewMode.Single:
+                    Info.Text = _imageDataCache[ImagePaths[_currImgIndex]].GetDisplayDate();
+                    break;
+                case ViewMode.Day:
+                    var dg = _dayGroups[_dayOrder[_currDayIndex]];
+                    Info.Text = FormatDateRange(_imageDataCache[dg[0]].DateTime, _imageDataCache[dg[^1]].DateTime);
+                    break;
+                case ViewMode.Week:
+                    var wg = _weekGroups[_weekOrder[_currWeekIndex]];
+                    Info.Text = FormatDateRange(_imageDataCache[wg[0]].DateTime, _imageDataCache[wg[^1]].DateTime);
+                    break;
+                case ViewMode.Month:
+                    var mg = _monthGroups[_monthOrder[_currMonthIndex]];
+                    Info.Text = FormatDateRange(_imageDataCache[mg[0]].DateTime, _imageDataCache[mg[^1]].DateTime);
+                    break;
             }
 
-            SaveLikes();
-        }
-
-        private async void OnImageDoubleTapped(object sender, TappedEventArgs e)
-        {
-            if (e.Parameter is not string imagePath) return;
-
-            var date = imageDataCache[imagePath].DateTime.GetValueOrDefault().Date;
-
-            switch (viewMode)
-            {
-                case 3:
-                    // Month → Week
-                    var week = calendar.GetWeekOfYear(date, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
-                    currWeekIndex = weekOrder.IndexOf((date.Year, week));
-                    GroupImagePaths = weekGroups[weekOrder[currWeekIndex]];
-                    viewMode = 2;
-                    break;
-                case 2:
-                    // Week → Day
-                    currDayIndex = dayOrder.IndexOf(date);
-                    GroupImagePaths = dayGroups[dayOrder[currDayIndex]];
-                    viewMode = 1;
-                    break;
-                case 1:
-                    // Day → Single
-                    await GoToSingleView(imagePath);
-                    return;
-            }
-
-            updateUI();
-            SelectPath(imagePath);
-        }
-
-        private void OnNextClicked(object sender, EventArgs e)
-        {
-            switch (viewMode)
-            {
-                case 0:
-                    currImgIndex++;
-                    if (currImgIndex >= imagePaths.Count)
-                        currImgIndex = 0;
-                    ImagePath = imagePaths[currImgIndex];
-                    break;
-                case 1:
-                    currDayIndex++;
-                    if (currDayIndex >= dayOrder.Count)
-                        currDayIndex = 0;
-                    GroupImagePaths = dayGroups[dayOrder[currDayIndex]];
-                    break;
-                case 2:
-                    currWeekIndex++;
-                    if (currWeekIndex >= weekOrder.Count)
-                        currWeekIndex = 0;
-                    GroupImagePaths = weekGroups[weekOrder[currWeekIndex]];
-                    break;
-                case 3:
-                    currMonthIndex++;
-                    if (currMonthIndex >= monthOrder.Count)
-                        currMonthIndex = 0;
-                    GroupImagePaths = monthGroups[monthOrder[currMonthIndex]];
-                    break;
-            }
-            updateUI();
-        }
-
-        private void OnPrevClicked(object sender, EventArgs e)
-        {
-            switch (viewMode)
-            {
-                case 0:
-                    currImgIndex--;
-                    if (currImgIndex < 0)
-                        currImgIndex = imagePaths.Count - 1;
-                    ImagePath = imagePaths[currImgIndex];
-                    break;
-                case 1:
-                    currDayIndex--;
-                    if (currDayIndex < 0)
-                        currDayIndex = dayOrder.Count - 1;
-                    GroupImagePaths = dayGroups[dayOrder[currDayIndex]];
-                    break;
-                case 2:
-                    currWeekIndex--;
-                    if (currWeekIndex < 0)
-                        currWeekIndex = weekOrder.Count - 1;
-                    GroupImagePaths = weekGroups[weekOrder[currWeekIndex]];
-                    break;
-                case 3:
-                    currMonthIndex--;
-                    if (currMonthIndex < 0)
-                        currMonthIndex = monthOrder.Count - 1;
-                    GroupImagePaths = monthGroups[monthOrder[currMonthIndex]];
-                    break;
-            }
-            updateUI();
-        }
-
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        //              MAP
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-        private void updateUI()
-        {
-            // Update Information Text
-            switch (viewMode)
-            {
-                case 0:
-                    {
-                        ImageMetadata metadata = imageDataCache[imagePaths[currImgIndex]];
-                        Info.Text = metadata.GetDisplayDate();
-                        break;
-                    }
-                case 1:
-                    {
-                        var group = dayGroups[dayOrder[currDayIndex]];
-                        var begin = imageDataCache[group[0]].DateTime;
-                        var end = imageDataCache[group[^1]].DateTime;
-                        Info.Text = FormatDateRange(begin, end);
-                        break;
-                    }
-                case 2:
-                    {
-                        var group = weekGroups[weekOrder[currWeekIndex]];
-                        var begin = imageDataCache[group[0]].DateTime;
-                        var end = imageDataCache[group[^1]].DateTime;
-                        Info.Text = FormatDateRange(begin, end);
-                        break;
-                    }
-                case 3:
-                    {
-                        var group = monthGroups[monthOrder[currMonthIndex]];
-                        var begin = imageDataCache[group[0]].DateTime;
-                        var end = imageDataCache[group[^1]].DateTime;
-                        Info.Text = FormatDateRange(begin, end);
-                        break;
-                    }
-            }
-            // Update Map
-            if (viewMode == 0)
-                UpdateMap(new[] { imagePaths[currImgIndex] });
+            if (_viewMode == ViewMode.Single)
+                UpdateMap(new[] { ImagePaths[_currImgIndex] });
             else
                 UpdateMap(GroupImagePaths);
 
-            // Update Grid Layout
-            if (viewMode >= 1)
+            if (_viewMode != ViewMode.Single)
                 UpdateCellSize(Width, Height, GroupImagePaths.Count);
 
-            resetImage();
+            ResetImage();
         }
 
         private static string FormatDateRange(DateTime? begin, DateTime? end)
@@ -679,8 +450,10 @@ namespace app
             return $"{beginStr} – {end.Value.ToString(fmt, CultureInfo.InvariantCulture)}";
         }
 
-        private bool _mapReady = false;
-        private string? _pendingMapJs = null;
+        // ── Map ───────────────────────────────────────────────────────────
+
+        private bool _mapReady;
+        private string? _pendingMapJs;
 
         private void OnMapNavigated(object sender, WebNavigatedEventArgs e)
         {
@@ -695,7 +468,7 @@ namespace app
         private void UpdateMap(IEnumerable<string> paths)
         {
             var coords = paths
-                .Select(p => imageDataCache.TryGetValue(p, out var m) ? m.Location : null)
+                .Select(p => _imageDataCache.TryGetValue(p, out var m) ? m.Location : null)
                 .Where(loc => loc != null)
                 .Select(loc => $"{{\"lat\":{loc!.Latitude.ToString(CultureInfo.InvariantCulture)},\"lon\":{loc.Longitude.ToString(CultureInfo.InvariantCulture)}}}")
                 .ToList();
@@ -708,57 +481,40 @@ namespace app
                 _pendingMapJs = js;
         }
 
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        //              Zoom In/Out
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        // ── Pan & zoom ────────────────────────────────────────────────────
 
-        //Zoom Buttons
-        private void OnZoomInClicked(Object sender, EventArgs e)
-        {
-            SingleView.HandleWheel(360, 0.5, 0.5);
-        }
-        private void OnZoomOutClicked(Object sender, EventArgs e)
-        {
-            SingleView.HandleWheel(-360, 0.5, 0.5);
-        }
+        private double _panX, _panY;
 
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        //              Panning
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-        double panX, panY;
-        private void OnPanUpdated(Object sender, PanUpdatedEventArgs e)
+        private void OnPanUpdated(object sender, PanUpdatedEventArgs e)
         {
             switch (e.StatusType)
             {
                 case GestureStatus.Started:
-                    panX = SingleView.TranslationX;
-                    panY = SingleView.TranslationY;
+                    _panX = SingleView.TranslationX;
+                    _panY = SingleView.TranslationY;
                     break;
 
                 case GestureStatus.Running:
                     var scale = SingleView.Scale;
-                    double minTx = -(scale - 1) * SingleView.Width;
-                    double minTy = -(scale - 1) * SingleView.Height;
-
-                    SingleView.TranslationX = Math.Clamp(panX + e.TotalX, minTx, 0);
-                    SingleView.TranslationY = Math.Clamp(panY + e.TotalY, minTy, 0);
+                    SingleView.TranslationX = Math.Clamp(_panX + e.TotalX, -(scale - 1) * SingleView.Width,  0);
+                    SingleView.TranslationY = Math.Clamp(_panY + e.TotalY, -(scale - 1) * SingleView.Height, 0);
                     break;
 
                 case GestureStatus.Completed:
-                    // Store the translation applied during the pan
-                    panX = SingleView.TranslationX;
-                    panY = SingleView.TranslationY;
+                    _panX = SingleView.TranslationX;
+                    _panY = SingleView.TranslationY;
                     break;
             }
 
-            this.InvalidateMeasure();
+            InvalidateMeasure();
         }
 
-        private void resetImage()
+        private void OnSingleViewDoubleTapped(object sender, TappedEventArgs e) => ResetImage();
+
+        private void ResetImage()
         {
-            panX = 0;
-            panY = 0;
+            _panX = 0;
+            _panY = 0;
             SingleView.TranslationX = 0;
             SingleView.TranslationY = 0;
             SingleView.ScaleToAsync(1, 250, Easing.CubicInOut);

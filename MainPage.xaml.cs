@@ -23,9 +23,7 @@ namespace app
                     {"folderPath", encoded}
                 };
 
-                //await Shell.Current.GoToAsync("ShowcasePage", paramdict);
                 await Shell.Current.GoToAsync("CollectionPage", paramdict);
-                //await Shell.Current.GoToAsync("Tester", paramdict);
 
             }
         }
