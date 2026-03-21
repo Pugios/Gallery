@@ -17,6 +17,18 @@ namespace app.WinUI
         public App()
         {
             this.InitializeComponent();
+            this.UnhandledException += (s, e) =>
+            {
+                e.Handled = true;
+                try
+                {
+                    var path = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                        "gallery_crash.txt");
+                    File.WriteAllText(path, e.Exception?.ToString() ?? "Unknown WinUI exception");
+                }
+                catch { }
+            };
         }
 
         protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();

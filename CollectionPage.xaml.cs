@@ -15,6 +15,23 @@ namespace app
             _likedPaths = LikeService.Load();
         }
 
+        protected override async void OnAppearing()
+        {
+            base.OnAppearing();
+            if (webView.Source == null)
+            {
+#if WINDOWS
+                // WebView2 can't write its cache to Program Files.
+                var userDataFolder = Path.Combine(FileSystem.AppDataDirectory, "WebView2");
+                Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", userDataFolder);
+#endif
+                using var stream = await FileSystem.OpenAppPackageFileAsync("map.html");
+                using var reader = new StreamReader(stream);
+                var html = await reader.ReadToEndAsync();
+                webView.Source = new HtmlWebViewSource { Html = html };
+            }
+        }
+
         // ── Folder loading ────────────────────────────────────────────────
 
         protected string FolderPath { get; private set; } = string.Empty;
@@ -141,23 +158,30 @@ namespace app
         public List<string> GroupImagePaths
         {
             get => _focusedGroup;
-            set
+            private set
             {
                 _focusedGroup = value ?? new List<string>();
                 OnPropertyChanged(nameof(GroupImagePaths));
                 _selectedPaths.Clear();
                 _lastSelectedPath = null;
-                RebuildGroupImageItems();
             }
         }
 
-        public ObservableCollection<ImageItemViewModel> GroupImageItems { get; } = new();
-
-        private void RebuildGroupImageItems()
+        private List<ImageItemViewModel> _groupImageItems = new();
+        public List<ImageItemViewModel> GroupImageItems
         {
-            GroupImageItems.Clear();
-            foreach (var path in _focusedGroup)
-                GroupImageItems.Add(new ImageItemViewModel(path) { IsLiked = _likedPaths.Contains(path) });
+            get => _groupImageItems;
+            private set { _groupImageItems = value; OnPropertyChanged(nameof(GroupImageItems)); }
+        }
+
+        private async Task GoToGroupAsync(List<string> paths)
+        {
+            GroupImagePaths = paths;
+            UpdateUI();
+
+            var liked = _likedPaths;
+            GroupImageItems = await Task.Run(() =>
+                paths.Select(p => new ImageItemViewModel(p) { IsLiked = liked.Contains(p) }).ToList());
         }
 
         // ── Selection ─────────────────────────────────────────────────────
@@ -208,37 +232,36 @@ namespace app
 
         // ── Navigation ────────────────────────────────────────────────────
 
-        private void BiggerGroupClicked(object? sender, EventArgs e)
+        private async void BiggerGroupClicked(object? sender, EventArgs e)
         {
             switch (_viewMode)
             {
                 case ViewMode.Single:
                     var day = _imageDataCache[ImagePath].DateTime.GetValueOrDefault().Date;
                     _currDayIndex = _dayOrder.IndexOf(day);
-                    GroupImagePaths = _dayGroups[_dayOrder[_currDayIndex]];
                     _viewMode = ViewMode.Day;
                     MultiView.IsVisible = true;
                     SingleView.IsVisible = false;
                     SingleView.Opacity = 0;
-                    UpdateUI();
-                    SelectPath(ImagePath);
+                    var selectedPath = ImagePath;
+                    await GoToGroupAsync(_dayGroups[_dayOrder[_currDayIndex]]);
+                    SelectPath(selectedPath);
                     return;
 
                 case ViewMode.Day:
                     var weekDate = _imageDataCache[GroupImagePaths[0]].DateTime.GetValueOrDefault().Date;
                     _currWeekIndex = _weekOrder.IndexOf((weekDate.Year, ImageLoadingService.GetWeekNumber(weekDate)));
-                    GroupImagePaths = _weekGroups[_weekOrder[_currWeekIndex]];
                     _viewMode = ViewMode.Week;
-                    break;
+                    await GoToGroupAsync(_weekGroups[_weekOrder[_currWeekIndex]]);
+                    return;
 
                 case ViewMode.Week:
                     var monthDate = _imageDataCache[GroupImagePaths[0]].DateTime.GetValueOrDefault().Date;
                     _currMonthIndex = _monthOrder.IndexOf((monthDate.Year, monthDate.Month));
-                    GroupImagePaths = _monthGroups[_monthOrder[_currMonthIndex]];
                     _viewMode = ViewMode.Month;
-                    break;
+                    await GoToGroupAsync(_monthGroups[_monthOrder[_currMonthIndex]]);
+                    return;
             }
-            UpdateUI();
         }
 
         private async Task GoToSingleView(string imagePath)
@@ -250,7 +273,7 @@ namespace app
             MultiView.IsVisible = false;
             SingleView.IsVisible = true;
             UpdateUI();
-            await SingleView.FadeTo(1, 200, Easing.CubicIn);
+            await SingleView.FadeToAsync(1, 200, Easing.CubicIn);
         }
 
         private async void SmallerGroupClicked(object? sender, EventArgs e)
@@ -264,66 +287,65 @@ namespace app
                 case ViewMode.Week:
                     var dayDate = _imageDataCache[_weekGroups[_weekOrder[_currWeekIndex]][0]].DateTime.GetValueOrDefault().Date;
                     _currDayIndex = _dayOrder.IndexOf(dayDate);
-                    GroupImagePaths = _dayGroups[_dayOrder[_currDayIndex]];
                     _viewMode = ViewMode.Day;
-                    break;
+                    await GoToGroupAsync(_dayGroups[_dayOrder[_currDayIndex]]);
+                    return;
 
                 case ViewMode.Month:
                     var weekDate = _imageDataCache[_monthGroups[_monthOrder[_currMonthIndex]][0]].DateTime.GetValueOrDefault().Date;
                     _currWeekIndex = _weekOrder.IndexOf((weekDate.Year, ImageLoadingService.GetWeekNumber(weekDate)));
-                    GroupImagePaths = _weekGroups[_weekOrder[_currWeekIndex]];
                     _viewMode = ViewMode.Week;
-                    break;
+                    await GoToGroupAsync(_weekGroups[_weekOrder[_currWeekIndex]]);
+                    return;
             }
-            UpdateUI();
         }
 
-        private void OnNextClicked(object sender, EventArgs e)
+        private async void OnNextClicked(object sender, EventArgs e)
         {
             switch (_viewMode)
             {
                 case ViewMode.Single:
                     _currImgIndex = (_currImgIndex + 1) % ImagePaths.Count;
                     ImagePath = ImagePaths[_currImgIndex];
-                    break;
+                    UpdateUI();
+                    return;
                 case ViewMode.Day:
                     _currDayIndex = (_currDayIndex + 1) % _dayOrder.Count;
-                    GroupImagePaths = _dayGroups[_dayOrder[_currDayIndex]];
-                    break;
+                    await GoToGroupAsync(_dayGroups[_dayOrder[_currDayIndex]]);
+                    return;
                 case ViewMode.Week:
                     _currWeekIndex = (_currWeekIndex + 1) % _weekOrder.Count;
-                    GroupImagePaths = _weekGroups[_weekOrder[_currWeekIndex]];
-                    break;
+                    await GoToGroupAsync(_weekGroups[_weekOrder[_currWeekIndex]]);
+                    return;
                 case ViewMode.Month:
                     _currMonthIndex = (_currMonthIndex + 1) % _monthOrder.Count;
-                    GroupImagePaths = _monthGroups[_monthOrder[_currMonthIndex]];
-                    break;
+                    await GoToGroupAsync(_monthGroups[_monthOrder[_currMonthIndex]]);
+                    return;
             }
-            UpdateUI();
         }
 
-        private void OnPrevClicked(object sender, EventArgs e)
+        private async void OnPrevClicked(object sender, EventArgs e)
         {
             switch (_viewMode)
             {
                 case ViewMode.Single:
                     _currImgIndex = (_currImgIndex - 1 + ImagePaths.Count) % ImagePaths.Count;
                     ImagePath = ImagePaths[_currImgIndex];
-                    break;
+                    UpdateUI();
+                    return;
                 case ViewMode.Day:
                     _currDayIndex = (_currDayIndex - 1 + _dayOrder.Count) % _dayOrder.Count;
-                    GroupImagePaths = _dayGroups[_dayOrder[_currDayIndex]];
-                    break;
+                    await GoToGroupAsync(_dayGroups[_dayOrder[_currDayIndex]]);
+                    return;
                 case ViewMode.Week:
                     _currWeekIndex = (_currWeekIndex - 1 + _weekOrder.Count) % _weekOrder.Count;
-                    GroupImagePaths = _weekGroups[_weekOrder[_currWeekIndex]];
-                    break;
+                    await GoToGroupAsync(_weekGroups[_weekOrder[_currWeekIndex]]);
+                    return;
                 case ViewMode.Month:
                     _currMonthIndex = (_currMonthIndex - 1 + _monthOrder.Count) % _monthOrder.Count;
-                    GroupImagePaths = _monthGroups[_monthOrder[_currMonthIndex]];
-                    break;
+                    await GoToGroupAsync(_monthGroups[_monthOrder[_currMonthIndex]]);
+                    return;
             }
-            UpdateUI();
         }
 
         // ── Tap handling (single handler to avoid double-tap delay) ──────
@@ -361,21 +383,20 @@ namespace app
             {
                 case ViewMode.Month:
                     _currWeekIndex = _weekOrder.IndexOf((date.Year, ImageLoadingService.GetWeekNumber(date)));
-                    GroupImagePaths = _weekGroups[_weekOrder[_currWeekIndex]];
                     _viewMode = ViewMode.Week;
-                    break;
+                    await GoToGroupAsync(_weekGroups[_weekOrder[_currWeekIndex]]);
+                    SelectPath(imagePath);
+                    return;
                 case ViewMode.Week:
                     _currDayIndex = _dayOrder.IndexOf(date);
-                    GroupImagePaths = _dayGroups[_dayOrder[_currDayIndex]];
                     _viewMode = ViewMode.Day;
-                    break;
+                    await GoToGroupAsync(_dayGroups[_dayOrder[_currDayIndex]]);
+                    SelectPath(imagePath);
+                    return;
                 case ViewMode.Day:
                     await GoToSingleView(imagePath);
                     return;
             }
-
-            UpdateUI();
-            SelectPath(imagePath);
         }
 
         private void HandleSingleTap(string imagePath)

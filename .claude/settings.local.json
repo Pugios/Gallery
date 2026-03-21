@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(dotnet --list-runtimes)",
+      "Bash(dotnet workload:*)"
     ]
   }
 }
