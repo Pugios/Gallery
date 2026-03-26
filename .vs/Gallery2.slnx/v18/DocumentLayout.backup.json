@@ -1,0 +1,159 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\views\\pages\\gallerypage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:views\\pages\\gallerypage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\views\\windows\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:views\\windows\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\views\\windows\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:views\\windows\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\viewmodels\\pages\\galleryviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:viewmodels\\pages\\galleryviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\converters\\subtractconverter.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:converters\\subtractconverter.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\viewmodels\\windows\\mainwindowviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:viewmodels\\windows\\mainwindowviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\app.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:app.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 102,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "GalleryPage.xaml",
+              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Views\\Pages\\GalleryPage.xaml",
+              "RelativeDocumentMoniker": "Views\\Pages\\GalleryPage.xaml",
+              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Views\\Pages\\GalleryPage.xaml",
+              "RelativeToolTip": "Views\\Pages\\GalleryPage.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-03-22T16:31:52.566Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "GalleryViewModel.cs",
+              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\ViewModels\\Pages\\GalleryViewModel.cs",
+              "RelativeDocumentMoniker": "ViewModels\\Pages\\GalleryViewModel.cs",
+              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\ViewModels\\Pages\\GalleryViewModel.cs",
+              "RelativeToolTip": "ViewModels\\Pages\\GalleryViewModel.cs",
+              "ViewState": "AgIAAGsAAAAAAAAAAAAuwKIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-22T16:31:57.678Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "MainWindow.xaml",
+              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Views\\Windows\\MainWindow.xaml",
+              "RelativeDocumentMoniker": "Views\\Windows\\MainWindow.xaml",
+              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Views\\Windows\\MainWindow.xaml",
+              "RelativeToolTip": "Views\\Windows\\MainWindow.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-03-24T11:29:35.978Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "MainWindow.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Views\\Windows\\MainWindow.xaml.cs",
+              "RelativeDocumentMoniker": "Views\\Windows\\MainWindow.xaml.cs",
+              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Views\\Windows\\MainWindow.xaml.cs",
+              "RelativeToolTip": "Views\\Windows\\MainWindow.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACcAAAAyAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-24T14:22:17.248Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "MainWindowViewModel.cs",
+              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\ViewModels\\Windows\\MainWindowViewModel.cs",
+              "RelativeDocumentMoniker": "ViewModels\\Windows\\MainWindowViewModel.cs",
+              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\ViewModels\\Windows\\MainWindowViewModel.cs",
+              "RelativeToolTip": "ViewModels\\Windows\\MainWindowViewModel.cs",
+              "ViewState": "AgIAACkAAAAAAAAAAAAwwCQAAAAjAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-22T22:45:24.203Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{56df62a4-05a3-4e5b-aa1a-99371ccfb997}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "SubtractConverter.cs",
+              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Converters\\SubtractConverter.cs",
+              "RelativeDocumentMoniker": "Converters\\SubtractConverter.cs",
+              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Converters\\SubtractConverter.cs",
+              "RelativeToolTip": "Converters\\SubtractConverter.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-24T14:56:18.488Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "App.xaml",
+              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\App.xaml",
+              "RelativeDocumentMoniker": "App.xaml",
+              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\App.xaml",
+              "RelativeToolTip": "App.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-03-24T14:47:26.116Z",
+              "EditorCaption": ""
+            }
+          ]
+        },
+        {
+          "DockedWidth": 82,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
