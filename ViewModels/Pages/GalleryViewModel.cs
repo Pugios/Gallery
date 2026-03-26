@@ -1,9 +1,14 @@
 ﻿using Gallery2.Models;
+using Gallery2.Services;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
 using Microsoft.Win32;
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
+using System.Linq.Expressions;
+using System.Timers;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Wpf.Ui.Abstractions.Controls;
@@ -20,7 +25,13 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
 
     // The GalleryState service holds the list of imported folders and the currently active folder.
     private readonly GalleryState _galleryState;
+    // Headerstate to change the header from this page (title, subtitle, icon)
     private readonly HeaderState _headerState;
+    // PersistenceService to load/save folders and metadata
+    private readonly PersistenceService _persistenceService;
+    // Service to load Windows Shell thumbnails
+    private readonly ShellThumbnailService _shellThumbnailService;
+    private readonly ConcurrentDictionary<string, WeakReference<BitmapSource>> _thumbnailCache = new(StringComparer.OrdinalIgnoreCase);
 
     // List of Pictures on this Page
     [ObservableProperty]
@@ -44,10 +55,12 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // Constructor with GalleryState injected
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    public GalleryViewModel(GalleryState galleryState, HeaderState headerState)
+    public GalleryViewModel(GalleryState galleryState, HeaderState headerState, PersistenceService persistenceService, ShellThumbnailService shellThumbnailService)
     {
         _galleryState = galleryState;
         _headerState = headerState;
+        _persistenceService = persistenceService;
+        _shellThumbnailService = shellThumbnailService;
     }
 
     // INavigationAware Components
@@ -99,8 +112,10 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
 
         // Scan the folder on a background thread so the UI stays responsive
         List<PictureItem> tempPictures = new();
-
         var progress = new Progress<double>(value => LoadingProgress = value);
+
+        var cache = _persistenceService.LoadMetadataCache();
+        bool cacheUpdated = false;
 
         await Task.Run(() =>
         {
@@ -116,46 +131,61 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
             int total = allFiles.Count;
             int processed = 0;
 
-            foreach (var folderPath in folderPaths)
+            // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            // Metadata
+            // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            foreach (var file in allFiles)
             {
-                // Get all files with the specified extensions, including subfolders
-                var files = Directory.EnumerateFiles(folderPath, "*", SearchOption.AllDirectories)
-                .Where(f => extensions.Contains(Path.GetExtension(f)));
+                DateTime? dateTaken = null;
+                double? lat = null;
+                double? lng = null;
 
-                // Add all items immediately so the grid appears right away (thumbnails load after)
-                foreach (var file in files)
+
+                if (cache.TryGetValue(file, out var cached))
                 {
-                    // Read Metadata
+                    dateTaken = cached.DateTaken;
+                    lat = cached.Latitude;
+                    lng = cached.Longitude;
+                }
+                else
+                {
                     var directories = ImageMetadataReader.ReadMetadata(file);
 
                     // Date taken
                     var subIfd = directories.OfType<ExifSubIfdDirectory>().FirstOrDefault();
-                    DateTime? dateTaken = null;
                     if (subIfd != null && subIfd.TryGetDateTime(ExifDirectoryBase.TagDateTimeOriginal, out var dt))
                         dateTaken = dt;
 
                     // GPS
                     var gps = directories.OfType<GpsDirectory>().FirstOrDefault();
                     var location = gps?.GetGeoLocation();   // returns null if no GPS data
-                    double? lat = location?.Latitude;
-                    double? lng = location?.Longitude;
+                    lat = location?.Latitude;
+                    lng = location?.Longitude;
 
-                    tempPictures.Add(new PictureItem(file)
-                    {
-                        DateTaken = dateTaken,
-                        Latitude = lat,
-                        Longitude = lng
-                    });
-
-                    if (total > 0)
-                        ((IProgress<double>)progress).Report(++processed * 100.0 / total);
+                    cache[file] = new CachedFileMetadata(file, dateTaken, lat, lng);
+                    cacheUpdated = true;
                 }
+
+                tempPictures.Add(new PictureItem(file)
+                {
+                    DateTaken = dateTaken,
+                    Latitude = lat,
+                    Longitude = lng
+                });
+
+                if (total > 0)
+                    ((IProgress<double>)progress).Report(++processed * 100.0 / total);
             }
         });
 
+        if (cacheUpdated)
+            _persistenceService.SaveMetadataCache(cache.Values);
+
         Pictures = new ObservableCollection<PictureItem>(tempPictures);
 
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         // Set Header
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         _headerState.Icon = SymbolRegular.Image24;
         _headerState.Title = _galleryState.ActiveFolder is not null
             ? Path.GetFileName(_galleryState.ActiveFolder)
@@ -168,20 +198,17 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         _headerState.Subtitle += vidCount > 0 ? $"{(picCount > 0 ? " · " : "")}{vidCount} video{(vidCount > 1 ? "s" : "")}" : "";
         _headerState.IsVisible = true;
 
-        // Load thumbnails concurrently, 4 at a time
         IsLoading = false;
+
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        // Load Thumbnails
+        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         using var semaphore = new SemaphoreSlim(4);
         var tasks = Pictures.Select(async item =>
         {
             await semaphore.WaitAsync();
-            try
-            {
-                item.Thumbnail = await Task.Run(() => LoadThumbnail(item.FilePath));
-            }
-            finally
-            {
-                semaphore.Release();
-            }
+            try { item.Thumbnail = await Task.Run(() => LoadThumbnail(item.FilePath)); }
+            finally { semaphore.Release(); }
         });
         await Task.WhenAll(tasks);
     }
@@ -192,18 +219,47 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         return ext is ".mp4" or ".mov" or ".avi" or ".mkv";
     }
 
-    private static BitmapSource? LoadThumbnail(string filePath)
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    // Load Thumbnails
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    public async Task RequestThumbnailAsync(PictureItem item)
+    {
+        if (item.Thumbnail is not null) return;
+        item.Thumbnail = await Task.Run(() => LoadThumbnail(item.FilePath));
+    }
+
+    // Load weak references to each Thumbnail. (let garbage collector remove thumbnails if memory under pressure)
+    private BitmapSource? LoadThumbnail(string filePath)
+    {
+        if (_thumbnailCache.TryGetValue(filePath, out var weakRef) && weakRef.TryGetTarget(out var cached))
+            return cached;
+
+        var shellResult = _shellThumbnailService.GetThumbnail(filePath, 500);
+        if (shellResult is not null)
+        {
+            _thumbnailCache[filePath] = new WeakReference<BitmapSource>(shellResult);
+            return shellResult;
+        }
+
+        var fallback = LoadThumbnailFallback(filePath);
+        _thumbnailCache[filePath] = new WeakReference<BitmapSource>(fallback);
+        return fallback;
+    }
+
+    private static BitmapSource? LoadThumbnailFallback(string filePath)
     {
         try
         {
             var bitmap = new BitmapImage();
             bitmap.BeginInit();
             bitmap.UriSource = new Uri(filePath);
-            bitmap.DecodePixelWidth = 200;           // decode at thumbnail size, not full res
+            bitmap.DecodePixelWidth = 500;           // decode at thumbnail size, not full res
             bitmap.CacheOption = BitmapCacheOption.OnLoad;
             bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
             bitmap.EndInit();
             bitmap.Freeze();                         // required to pass across threads safely
+
             return bitmap;
         }
         catch

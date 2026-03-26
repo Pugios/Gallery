@@ -58,6 +58,8 @@ namespace Gallery2
                 services.AddSingleton<GalleryState>();
                 services.AddSingleton<HeaderState>();
 
+                services.AddSingleton<PersistenceService>();
+                services.AddSingleton<ShellThumbnailService>();
 
             }).Build();
 

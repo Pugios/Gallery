@@ -44,7 +44,7 @@
             Grid.Row="1"
             Padding="42,0,42,0"
             FrameMargin="0"
-            IsBackButtonVisible="Visible"
+            IsBackButtonVisible="Collapsed"
             IsPaneToggleVisible="True"
             PaneDisplayMode="Left">
 

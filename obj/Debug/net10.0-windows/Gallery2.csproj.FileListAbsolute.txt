@@ -60,3 +60,4 @@ C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\
 C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\obj\Debug\net10.0-windows\Views\Pages\GalleryPage.baml
 C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\MetadataExtractor.dll
 C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\XmpCore.dll
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\obj\Debug\net10.0-windows\Gallery2.sourcelink.json

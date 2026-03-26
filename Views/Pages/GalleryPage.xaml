@@ -80,7 +80,7 @@
                         ClipToBounds="True">
                         <Image
                             Source="{Binding Thumbnail}"
-                            Stretch="UniformToFill" />
+                            Stretch="UniformToFill"/>
                     </Border>
                 </DataTemplate>
             </ui:VirtualizingGridView.ItemTemplate>

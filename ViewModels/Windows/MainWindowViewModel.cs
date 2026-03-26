@@ -5,9 +5,11 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
+using System.Windows.Controls;
 using System.Windows.Navigation;
 using Wpf.Ui;
 using Wpf.Ui.Controls;
+using MenuItem = Wpf.Ui.Controls.MenuItem;
 
 namespace Gallery2.ViewModels.Windows;
 
@@ -40,21 +42,25 @@ public partial class MainWindowViewModel : ObservableObject
         _galleryState.ImportedFolders.CollectionChanged += OnImportedFoldersChanged;
     }
 
+    private void AddFolderNavItem(string folderPath)
+    {
+        var folderItem = new NavigationViewItem()
+        {
+            Content = Path.GetFileName(folderPath),
+            TargetPageTag = folderPath,
+            Icon = new SymbolIcon { Symbol = SymbolRegular.Folder24 },
+            TargetPageType = typeof(GalleryPage)
+        };
+        folderItem.PreviewMouseLeftButtonDown += (_, _) => _galleryState.ActiveFolder = folderPath;
+        _menuItems.Add(folderItem);
+    }
+
     private void OnImportedFoldersChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (e.NewItems is null) return;
         foreach (string folderPath in e.NewItems)
         {
-            var folderItem = new NavigationViewItem()
-            {
-                Content = Path.GetFileName(folderPath),
-                TargetPageTag = folderPath,
-                Icon = new SymbolIcon { Symbol = SymbolRegular.Folder24 },
-                TargetPageType = typeof(GalleryPage)
-            };
-            folderItem.PreviewMouseLeftButtonDown += (_, _) => _galleryState.ActiveFolder = folderPath;
-            _menuItems.Add(folderItem);
-
+            AddFolderNavItem(folderPath);
             _navigationService.Navigate(folderPath);
         }
     }
@@ -78,5 +84,8 @@ public partial class MainWindowViewModel : ObservableObject
     public void SetMenuItems(System.Collections.IList menuItems)
     {
         _menuItems = menuItems;
+
+        foreach (var folder in _galleryState.ImportedFolders)
+            AddFolderNavItem(folder);
     }
 }

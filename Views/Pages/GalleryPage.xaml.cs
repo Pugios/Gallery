@@ -1,4 +1,5 @@
-﻿using Gallery2.ViewModels.Pages;
+﻿using Gallery2.Models;
+using Gallery2.ViewModels.Pages;
 using System;
 using System.Collections.Generic;
 using System.Text;
