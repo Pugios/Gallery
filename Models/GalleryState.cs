@@ -14,12 +14,9 @@ public partial class GalleryState : ObservableObject
     public ObservableCollection<string> ImportedFolders { get; } = [];
     public string? ActiveFolder { get; set; }
 
-    [ObservableProperty] 
-    private string _galleryTitle = "Gallery";
-    [ObservableProperty] 
-    private int _photoCount;
-    [ObservableProperty] 
-    private int _videoCount;
+    // Toolbar
+    [ObservableProperty]
+    private GroupMode _selectedGroupMode = GroupMode.Month;
 
     public GalleryState(PersistenceService persistenceService)
     {
@@ -31,4 +28,19 @@ public partial class GalleryState : ObservableObject
     {
         _persistenceService.SaveFolders(ImportedFolders);
     }
+
+    public void AddFolder(string path)
+    {
+        ActiveFolder = path;
+        if (!ImportedFolders.Contains(path))
+            ImportedFolders.Add(path);
+    }
+}
+
+public enum GroupMode
+{
+    None,
+    Day,
+    Week,
+    Month
 }

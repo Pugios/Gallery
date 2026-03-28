@@ -5,7 +5,9 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:Gallery2.Views.Windows"
     xmlns:pages="clr-namespace:Gallery2.Views.Pages"
-    xmlns:converters="clr-namespace:Gallery2.Converters"
+    xmlns:helpers="clr-namespace:Gallery2.Helpers"
+    xmlns:models="clr-namespace:Gallery2.Models"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     Title="{Binding ViewModel.ApplicationTitle, Mode=OneWay}"
@@ -27,8 +29,19 @@
     <Window.Resources>
         <BooleanToVisibilityConverter
             x:Key="BoolToVis" />
-        <converters:SubtractConverter
+
+        <helpers:SubtractConverter
             x:Key="SubtractConverter" />
+        
+        <ObjectDataProvider
+            x:Key="GroupModeValues"
+            MethodName="GetValues"
+            ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type
+                    TypeName="models:GroupMode" />
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
     </Window.Resources>
 
     <Grid>
@@ -93,29 +106,47 @@
             </ui:NavigationView.FooterMenuItems>
 
             <ui:NavigationView.Header>
-                <StackPanel
+                <Grid
                     Margin="60,32,42,20"
-                    Orientation="Vertical"
                     Visibility="{Binding ViewModel.HeaderState.IsVisible, Converter={StaticResource BoolToVis}}">
+                    
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition
+                            Width="Auto" />
+                        <ColumnDefinition
+                            Width="*" />
+                    </Grid.ColumnDefinitions>
+
                     <StackPanel
-                        Margin="0,0,0,0"
-                        Orientation="Horizontal"
-                        VerticalAlignment="Center">
-                        <ui:SymbolIcon
-                            VerticalAlignment="Center"
-                            Margin="0,0,12,0"
-                            FontSize="28"
-                            Symbol="{Binding ViewModel.HeaderState.Icon}" />
+                        Grid.Column="0"
+                        Orientation="Vertical">
+                        <StackPanel
+                            Margin="0,0,0,0"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                            <ui:SymbolIcon
+                                VerticalAlignment="Center"
+                                Margin="0,0,12,0"
+                                FontSize="28"
+                                Symbol="{Binding ViewModel.HeaderState.Icon}" />
+                            <TextBlock
+                                FontSize="24"
+                                FontWeight="SemiBold"
+                                Text="{Binding ViewModel.HeaderState.Title}" />
+                        </StackPanel>
                         <TextBlock
-                            FontSize="24"
-                            FontWeight="SemiBold"
-                            Text="{Binding ViewModel.HeaderState.Title}" />
+                            FontSize="13"
+                            Opacity="0.6"
+                            Text="{Binding ViewModel.HeaderState.Subtitle}" />
                     </StackPanel>
-                    <TextBlock
-                        FontSize="13"
-                        Opacity="0.6"
-                        Text="{Binding ViewModel.HeaderState.Subtitle}" />
-                </StackPanel>
+
+                    <ComboBox
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Width="120"
+                        ItemsSource="{Binding Source={StaticResource GroupModeValues}}"
+                        SelectedItem="{Binding ViewModel.GalleryState.SelectedGroupMode}" />
+                </Grid>
             </ui:NavigationView.Header>
 
             <ui:NavigationView.ContentOverlay>

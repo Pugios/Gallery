@@ -61,6 +61,8 @@ namespace Gallery2
                 services.AddSingleton<PersistenceService>();
                 services.AddSingleton<ShellThumbnailService>();
 
+                
+
             }).Build();
 
         /// <summary>

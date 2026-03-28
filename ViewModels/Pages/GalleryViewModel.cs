@@ -1,14 +1,14 @@
-﻿using Gallery2.Models;
+﻿using Gallery2.Helpers;
+using Gallery2.Models;
 using Gallery2.Services;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
 using Microsoft.Win32;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
+using System.ComponentModel;
 using System.IO;
-using System.Linq.Expressions;
-using System.Timers;
+using System.Windows.Data;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Wpf.Ui.Abstractions.Controls;
@@ -52,6 +52,9 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
     // True when the empty-state prompt should be visible
     public bool ShowEmptyState => !HasPictures && !IsLoading;
 
+    // Pictures CollectionView to change layout and grouping without changing the underlying collection
+    public ICollectionView? PicturesView { get; private set; }
+
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // Constructor with GalleryState injected
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -61,6 +64,8 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         _headerState = headerState;
         _persistenceService = persistenceService;
         _shellThumbnailService = shellThumbnailService;
+
+        _galleryState.PropertyChanged += OnToolbarStateChanged;
     }
 
     // INavigationAware Components
@@ -93,12 +98,7 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
     {
         var dialog = new OpenFolderDialog { Title = "Select a folder of images" };
         if (dialog.ShowDialog() != true) return;
-
-        var path = dialog.FolderName;
-        _galleryState.ActiveFolder = path;
-
-        if (!_galleryState.ImportedFolders.Contains(path))
-            _galleryState.ImportedFolders.Add(path);
+        _galleryState.AddFolder(dialog.FolderName);
     }
 
     private async Task LoadFoldersAsync(IEnumerable<string> folderPaths)
@@ -181,23 +181,12 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         if (cacheUpdated)
             _persistenceService.SaveMetadataCache(cache.Values);
 
-        Pictures = new ObservableCollection<PictureItem>(tempPictures);
-
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        // Set Header
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        _headerState.Icon = SymbolRegular.Image24;
-        _headerState.Title = _galleryState.ActiveFolder is not null
-            ? Path.GetFileName(_galleryState.ActiveFolder)
-            : "Gallery";
-
-        int picCount = Pictures.Count(p => !IsVideo(p.FilePath));
-        int vidCount = Pictures.Count(p => IsVideo(p.FilePath));
-        _headerState.Subtitle = "";
-        _headerState.Subtitle += picCount > 0 ? $"{picCount} photo{(picCount > 1 ? "s" : "")}" : "";
-        _headerState.Subtitle += vidCount > 0 ? $"{(picCount > 0 ? " · " : "")}{vidCount} video{(vidCount > 1 ? "s" : "")}" : "";
-        _headerState.IsVisible = true;
-
+        Pictures = new ObservableCollection<PictureItem>(tempPictures.OrderBy(p => p.DateTaken ?? DateTime.MaxValue));
+        PicturesView = CollectionViewSource.GetDefaultView(Pictures);
+        OnPropertyChanged(nameof(PicturesView));
+        
+        ApplyGrouping();
+        UpdateHeader();
         IsLoading = false;
 
         // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -213,6 +202,21 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         await Task.WhenAll(tasks);
     }
 
+    private void UpdateHeader()
+    {
+        _headerState.Icon = SymbolRegular.Image24;
+        _headerState.Title = _galleryState.ActiveFolder is not null
+            ? Path.GetFileName(_galleryState.ActiveFolder)
+            : "Gallery";
+
+        int picCount = Pictures.Count(p => !IsVideo(p.FilePath));
+        int vidCount = Pictures.Count(p => IsVideo(p.FilePath));
+        _headerState.Subtitle = "";
+        _headerState.Subtitle += picCount > 0 ? $"{picCount} photo{(picCount > 1 ? "s" : "")}" : "";
+        _headerState.Subtitle += vidCount > 0 ? $"{(picCount > 0 ? " · " : "")}{vidCount} video{(vidCount > 1 ? "s" : "")}" : "";
+        _headerState.IsVisible = true;
+    }
+
     private static bool IsVideo(string path)
     {
         var ext = Path.GetExtension(path).ToLowerInvariant();
@@ -222,12 +226,6 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // Load Thumbnails
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    public async Task RequestThumbnailAsync(PictureItem item)
-    {
-        if (item.Thumbnail is not null) return;
-        item.Thumbnail = await Task.Run(() => LoadThumbnail(item.FilePath));
-    }
 
     // Load weak references to each Thumbnail. (let garbage collector remove thumbnails if memory under pressure)
     private BitmapSource? LoadThumbnail(string filePath)
@@ -266,5 +264,30 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         {
             return null;
         }
+    }
+
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    // Grouping
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    private void OnToolbarStateChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(GalleryState.SelectedGroupMode))
+        {
+            ApplyGrouping();
+        }
+    }
+
+    private void ApplyGrouping()
+    {
+        if (PicturesView is null) return;
+
+        PicturesView.GroupDescriptions.Clear();
+
+        if (_galleryState.SelectedGroupMode == GroupMode.None) return;
+
+        var converter = new DateGroupConverter { Mode = _galleryState.SelectedGroupMode };
+        PicturesView.GroupDescriptions.Add(
+            new PropertyGroupDescription(nameof(PictureItem.DateTaken), converter));
     }
 }

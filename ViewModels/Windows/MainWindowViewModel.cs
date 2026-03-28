@@ -3,10 +3,7 @@ using Gallery2.Views.Pages;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Diagnostics;
 using System.IO;
-using System.Windows.Controls;
-using System.Windows.Navigation;
 using Wpf.Ui;
 using Wpf.Ui.Controls;
 using MenuItem = Wpf.Ui.Controls.MenuItem;
@@ -72,13 +69,7 @@ public partial class MainWindowViewModel : ObservableObject
     {
         var dialog = new OpenFolderDialog { Title = "Select a folder of images" };
         if (dialog.ShowDialog() != true) return;
-        var path = dialog.FolderName;
-        
-        _galleryState.ActiveFolder = path;
-
-        if (!_galleryState.ImportedFolders.Contains(path))
-            _galleryState.ImportedFolders.Add(path);
-
+        _galleryState.AddFolder(dialog.FolderName);
     }
 
     public void SetMenuItems(System.Collections.IList menuItems)
