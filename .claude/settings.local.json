@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:UsersmatarDocumentsPugiosDocumentsOwnProjectsPicture_ShowcaserGallery2 -type f -name *.xaml -o -name *ViewModel*)"
+    ]
+  }
+}

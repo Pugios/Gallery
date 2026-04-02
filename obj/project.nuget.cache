@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "cmHb3YULcjI=",
+  "dgSpecHash": "X3V8+7KXH+I=",
   "success": true,
   "projectFilePath": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Gallery2.csproj",
   "expectedPackageFiles": [
@@ -33,6 +33,8 @@
     "C:\\Users\\matar\\.nuget\\packages\\microsoft.extensions.options\\10.0.5\\microsoft.extensions.options.10.0.5.nupkg.sha512",
     "C:\\Users\\matar\\.nuget\\packages\\microsoft.extensions.options.configurationextensions\\10.0.5\\microsoft.extensions.options.configurationextensions.10.0.5.nupkg.sha512",
     "C:\\Users\\matar\\.nuget\\packages\\microsoft.extensions.primitives\\10.0.5\\microsoft.extensions.primitives.10.0.5.nupkg.sha512",
+    "C:\\Users\\matar\\.nuget\\packages\\opencvsharp4\\4.13.0.20260318\\opencvsharp4.4.13.0.20260318.nupkg.sha512",
+    "C:\\Users\\matar\\.nuget\\packages\\opencvsharp4.runtime.win\\4.13.0.20260302\\opencvsharp4.runtime.win.4.13.0.20260302.nupkg.sha512",
     "C:\\Users\\matar\\.nuget\\packages\\wpf-ui\\4.2.0\\wpf-ui.4.2.0.nupkg.sha512",
     "C:\\Users\\matar\\.nuget\\packages\\wpf-ui.abstractions\\4.2.0\\wpf-ui.abstractions.4.2.0.nupkg.sha512",
     "C:\\Users\\matar\\.nuget\\packages\\wpf-ui.dependencyinjection\\4.2.0\\wpf-ui.dependencyinjection.4.2.0.nupkg.sha512",

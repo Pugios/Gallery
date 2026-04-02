@@ -33,6 +33,9 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
     private readonly ShellThumbnailService _shellThumbnailService;
     private readonly ConcurrentDictionary<string, WeakReference<BitmapSource>> _thumbnailCache = new(StringComparer.OrdinalIgnoreCase);
 
+    // Run Face Indexing after Loading a folder
+    private readonly FaceIndexingService _faceIndexingService;
+
     // List of Pictures on this Page
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasPictures))]
@@ -58,12 +61,13 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // Constructor with GalleryState injected
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    public GalleryViewModel(GalleryState galleryState, HeaderState headerState, PersistenceService persistenceService, ShellThumbnailService shellThumbnailService)
+    public GalleryViewModel(GalleryState galleryState, HeaderState headerState, PersistenceService persistenceService, ShellThumbnailService shellThumbnailService, FaceIndexingService faceIndexingService)
     {
         _galleryState = galleryState;
         _headerState = headerState;
         _persistenceService = persistenceService;
         _shellThumbnailService = shellThumbnailService;
+        _faceIndexingService = faceIndexingService;
 
         _galleryState.PropertyChanged += OnToolbarStateChanged;
     }
@@ -83,11 +87,7 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
             await LoadFoldersAsync([_galleryState.ActiveFolder]);
         }
     }
-    public Task OnNavigatedFromAsync()
-    {
-        _headerState.IsVisible = false;
-        return Task.CompletedTask;
-    }
+    public Task OnNavigatedFromAsync() => Task.CompletedTask;
 
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // Selecting and Loading Pictures
@@ -107,14 +107,13 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         Pictures.Clear();
         await Dispatcher.Yield(DispatcherPriority.Background);
 
-        var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                  { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".tif", ".webp", ".mp4", ".mov", ".avi", ".mkv" };
+        var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase){ ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".tif", ".webp", ".mp4", ".mov", ".avi", ".mkv" };
 
         // Scan the folder on a background thread so the UI stays responsive
         List<PictureItem> tempPictures = new();
         var progress = new Progress<double>(value => LoadingProgress = value);
 
-        var cache = _persistenceService.LoadMetadataCache();
+        var cache = _persistenceService.MetadataCache;
         bool cacheUpdated = false;
 
         await Task.Run(() =>
@@ -139,7 +138,6 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
                 DateTime? dateTaken = null;
                 double? lat = null;
                 double? lng = null;
-
 
                 if (cache.TryGetValue(file, out var cached))
                 {
@@ -179,12 +177,16 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         });
 
         if (cacheUpdated)
+        {
             _persistenceService.SaveMetadataCache(cache.Values);
+            // Start Facial Recognition if there was new images!
+            _ = _faceIndexingService.IndexUnprocessedAsync(); 
+        }
 
         Pictures = new ObservableCollection<PictureItem>(tempPictures.OrderBy(p => p.DateTaken ?? DateTime.MaxValue));
         PicturesView = CollectionViewSource.GetDefaultView(Pictures);
         OnPropertyChanged(nameof(PicturesView));
-        
+
         ApplyGrouping();
         UpdateHeader();
         IsLoading = false;
@@ -215,6 +217,7 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         _headerState.Subtitle += picCount > 0 ? $"{picCount} photo{(picCount > 1 ? "s" : "")}" : "";
         _headerState.Subtitle += vidCount > 0 ? $"{(picCount > 0 ? " · " : "")}{vidCount} video{(vidCount > 1 ? "s" : "")}" : "";
         _headerState.IsVisible = true;
+        _headerState.ShowComboBox = true;
     }
 
     private static bool IsVideo(string path)

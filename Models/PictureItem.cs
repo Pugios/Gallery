@@ -20,3 +20,13 @@ public partial class PictureItem : ObservableObject
         FilePath = filePath;
     }
 }
+
+public partial class FacePictureItem : ObservableObject
+{
+    public string ClusterId { get; init; } = "";
+    public string Name { get; init; } = "";
+
+    [ObservableProperty]
+    private BitmapSource? _thumbnail;
+}
+

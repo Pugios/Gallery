@@ -61,7 +61,17 @@ namespace Gallery2
                 services.AddSingleton<PersistenceService>();
                 services.AddSingleton<ShellThumbnailService>();
 
-                
+                // Search Page
+                services.AddSingleton<SearchPage>();
+                services.AddSingleton<SearchViewModel>();
+
+                // Face processing services
+                services.AddSingleton<FaceDetectionService>();
+                services.AddSingleton<FaceEmbeddingService>();
+                services.AddSingleton<FaceClusteringService>();
+                services.AddSingleton<FaceIndexingService>();
+
+
 
             }).Build();
 
