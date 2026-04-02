@@ -30,6 +30,7 @@ namespace Gallery2.ViewModels.Pages
             _headerState.Title = "Settings";
             _headerState.Subtitle = "";
             _headerState.IsVisible = true;
+            _headerState.ShowComboBox = false;
 
             return Task.CompletedTask;
         }

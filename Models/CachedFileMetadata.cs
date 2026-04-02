@@ -8,4 +8,5 @@ public record CachedFileMetadata(
     string FilePath,
     DateTime? DateTaken,
     double? Latitude,
-    double? Longitude);
+    double? Longitude
+    );

@@ -32,7 +32,7 @@
 
         <helpers:SubtractConverter
             x:Key="SubtractConverter" />
-        
+
         <ObjectDataProvider
             x:Key="GroupModeValues"
             MethodName="GetValues"
@@ -96,6 +96,12 @@
                         </Grid>
                     </ui:NavigationViewItem.Content>
                 </ui:NavigationViewItem>
+
+                <ui:NavigationViewItem
+                    Content="Search"
+                    Icon="{ui:SymbolIcon Search24}"
+                    TargetPageType="{x:Type pages:SearchPage}"/>
+
             </ui:NavigationView.MenuItems>
 
             <ui:NavigationView.FooterMenuItems>
@@ -109,7 +115,7 @@
                 <Grid
                     Margin="60,32,42,20"
                     Visibility="{Binding ViewModel.HeaderState.IsVisible, Converter={StaticResource BoolToVis}}">
-                    
+
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition
                             Width="Auto" />
@@ -144,6 +150,7 @@
                         Grid.Column="1"
                         VerticalAlignment="Center"
                         Width="120"
+                        Visibility="{Binding ViewModel.HeaderState.ShowComboBox, Converter={StaticResource BoolToVis}}"
                         ItemsSource="{Binding Source={StaticResource GroupModeValues}}"
                         SelectedItem="{Binding ViewModel.GalleryState.SelectedGroupMode}" />
                 </Grid>

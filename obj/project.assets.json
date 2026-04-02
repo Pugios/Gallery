@@ -610,6 +610,35 @@
           "buildTransitive/net8.0/_._": {}
         }
       },
+      "OpenCvSharp4/4.13.0.20260318": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/OpenCvSharp.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/OpenCvSharp.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "OpenCvSharp4.runtime.win/4.13.0.20260302": {
+        "type": "package",
+        "build": {
+          "build/net8.0/OpenCvSharp4.runtime.win.props": {}
+        },
+        "runtimeTargets": {
+          "runtimes/win-x64/native/OpenCvSharpExtern.dll": {
+            "assetType": "native",
+            "rid": "win-x64"
+          },
+          "runtimes/win-x64/native/opencv_videoio_ffmpeg4130_64.dll": {
+            "assetType": "native",
+            "rid": "win-x64"
+          }
+        }
+      },
       "WPF-UI/4.2.0": {
         "type": "package",
         "dependencies": {
@@ -1599,6 +1628,43 @@
         "useSharedDesignerContext.txt"
       ]
     },
+    "OpenCvSharp4/4.13.0.20260318": {
+      "sha512": "DD3ub2N4/ldIbcsIt03lSSVCqKCImaIMPjud+3G7ikj/RUa//BV59iuh924hTjR+ghTQW6r+h2KbjMzJT4EuRQ==",
+      "type": "package",
+      "path": "opencvsharp4/4.13.0.20260318",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.managed.md",
+        "lib/net8.0/OpenCvSharp.dll",
+        "lib/net8.0/OpenCvSharp.xml",
+        "lib/netstandard2.0/OpenCvSharp.dll",
+        "lib/netstandard2.0/OpenCvSharp.xml",
+        "lib/netstandard2.1/OpenCvSharp.dll",
+        "lib/netstandard2.1/OpenCvSharp.xml",
+        "opencvsharp.png",
+        "opencvsharp4.4.13.0.20260318.nupkg.sha512",
+        "opencvsharp4.nuspec"
+      ]
+    },
+    "OpenCvSharp4.runtime.win/4.13.0.20260302": {
+      "sha512": "VC2n9CVZQvAm+p0NXW077e/MGkDBraT3ye4FdInRPpxTVK64DwGnLuIncS8mwrkVcKhqh82/KgcDgKXNWDndAA==",
+      "type": "package",
+      "path": "opencvsharp4.runtime.win/4.13.0.20260302",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.runtime.md",
+        "build/net8.0/OpenCvSharp4.runtime.win.props",
+        "build/netcoreapp/OpenCvSharp4.runtime.win.props",
+        "build/netstandard/OpenCvSharp4.runtime.win.props",
+        "opencvsharp.png",
+        "opencvsharp4.runtime.win.4.13.0.20260302.nupkg.sha512",
+        "opencvsharp4.runtime.win.nuspec",
+        "runtimes/win-x64/native/OpenCvSharpExtern.dll",
+        "runtimes/win-x64/native/opencv_videoio_ffmpeg4130_64.dll"
+      ]
+    },
     "WPF-UI/4.2.0": {
       "sha512": "cLJCqIYGtbSU8da9UnPV83SU5XttiM+BEZWW/jLSLjjmBvK2s54oDcO2wP36GEVgiXu5/QXJHlgXk0f14Cvw3g==",
       "type": "package",
@@ -1723,6 +1789,8 @@
       "CommunityToolkit.Mvvm >= 8.4.2",
       "MetadataExtractor >= 2.9.2",
       "Microsoft.Extensions.Hosting >= 10.0.5",
+      "OpenCvSharp4 >= 4.13.0.20260318",
+      "OpenCvSharp4.runtime.win >= 4.13.0.20260302",
       "WPF-UI >= 4.2.0",
       "WPF-UI.DependencyInjection >= 4.2.0"
     ]
@@ -1789,6 +1857,14 @@
           "Microsoft.Extensions.Hosting": {
             "target": "Package",
             "version": "[10.0.5, )"
+          },
+          "OpenCvSharp4": {
+            "target": "Package",
+            "version": "[4.13.0.20260318, )"
+          },
+          "OpenCvSharp4.runtime.win": {
+            "target": "Package",
+            "version": "[4.13.0.20260302, )"
           },
           "WPF-UI": {
             "target": "Package",

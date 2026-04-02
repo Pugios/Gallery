@@ -61,3 +61,10 @@ C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\
 C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\MetadataExtractor.dll
 C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\XmpCore.dll
 C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\obj\Debug\net10.0-windows\Gallery2.sourcelink.json
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\OpenCvSharp.dll
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\runtimes\win-x64\native\OpenCvSharpExtern.dll
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\runtimes\win-x64\native\opencv_videoio_ffmpeg4130_64.dll
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\Assets\Models\face_detection_yunet_2023mar_int8bq.onnx
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\Assets\Models\face_recognition_sface_2021dec_int8bq.onnx
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\obj\Debug\net10.0-windows\Views\Pages\SearchPage.g.cs
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\obj\Debug\net10.0-windows\Views\Pages\SearchPage.baml
