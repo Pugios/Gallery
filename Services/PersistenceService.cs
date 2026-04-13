@@ -8,6 +8,7 @@ using System.Runtime.Intrinsics.Arm;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Data;
+using System.Windows.Media.Imaging;
 
 namespace Gallery2.Services;
 
@@ -60,7 +61,7 @@ public class PersistenceService
     }
 
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    // Metadata - Key: file path, Value: date taken, lat, lng
+    // Metadata - Key: file path, Value: date taken, lat, lng, rotation
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     public ConcurrentDictionary<string, CachedFileMetadata> LoadMetadataCache()
     {
@@ -70,13 +71,14 @@ public class PersistenceService
         foreach (var line in File.ReadAllLines(MetadataCacheFile))
         {
             var parts = line.Split('|');
-            if (parts.Length != 4) continue;
+            if (parts.Length != 5) continue;
 
             DateTime? dateTaken = DateTime.TryParse(parts[1], CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt) ? dt : null;
             double? lat = double.TryParse(parts[2], NumberStyles.Any, CultureInfo.InvariantCulture, out var la) ? la : null;
             double? lng = double.TryParse(parts[3], NumberStyles.Any, CultureInfo.InvariantCulture, out var lo) ? lo : null;
+            int? rotation = int.TryParse(parts[4], out var rot) ? rot : null;
 
-            result[parts[0]] = new CachedFileMetadata(parts[0], dateTaken, lat, lng);
+            result[parts[0]] = new CachedFileMetadata(parts[0], dateTaken, lat, lng, rotation);
         }
         return result;
     }
@@ -89,14 +91,15 @@ public class PersistenceService
             $"{e.FilePath}|" +
             $"{e.DateTaken?.ToString("O", CultureInfo.InvariantCulture) ?? ""}|" +
             $"{e.Latitude?.ToString(CultureInfo.InvariantCulture) ?? ""}|" +
-            $"{e.Longitude?.ToString(CultureInfo.InvariantCulture) ?? ""}");
+            $"{e.Longitude?.ToString(CultureInfo.InvariantCulture) ?? ""}|" +
+            $"{e.Rotation?.ToString(CultureInfo.InvariantCulture) ?? ""}");
         File.WriteAllLines(MetadataCacheFile, lines);
     }
 
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // Face Indexing
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    // face_embeddings(embeddingData[]) : FilePath(string), BoundingBox(FaceRect), Embeddings(float[128])
+    // face_embeddings(embeddingData[]) : FilePath(string), BoundingBox(Rect), Embeddings(float[128]), Confidence(float)
     // List of Faces and their Embeddings
     private List<EmbeddingData> LoadFaceEmbeddings()
     {
@@ -106,12 +109,13 @@ public class PersistenceService
         foreach (var line in File.ReadAllLines(FaceEmbeddingsFile))
         {
             var parts = line.Split('|');
-            if (parts.Length != 6) continue;
+            if (parts.Length != 7) continue;
 
             if (!int.TryParse(parts[1], out var x) ||
                 !int.TryParse(parts[2], out var y) ||
                 !int.TryParse(parts[3], out var w) ||
-                !int.TryParse(parts[4], out var h))
+                !int.TryParse(parts[4], out var h) ||
+                !float.TryParse(parts[6], NumberStyles.Any, CultureInfo.InvariantCulture, out var confidence))
                 continue;
 
             var embeddingParts = parts[5].Split(';');
@@ -121,8 +125,7 @@ public class PersistenceService
             var valid = true;
             for (int i = 0; i < 128; i++)
             {
-                if (!float.TryParse(embeddingParts[i], NumberStyles.Any,
-                        CultureInfo.InvariantCulture, out embedding[i]))
+                if (!float.TryParse(embeddingParts[i], NumberStyles.Any, CultureInfo.InvariantCulture, out embedding[i]))
                 {
                     valid = false;
                     break;
@@ -132,8 +135,9 @@ public class PersistenceService
 
             result.Add(new EmbeddingData(
                 parts[0],
-                new FaceRect(x, y, w, h),
-                embedding));
+                new Rect(x, y, w, h),
+                embedding,
+                confidence));
         }
         return result;
     }
@@ -148,13 +152,14 @@ public class PersistenceService
             $"{e.BoundingBox.Width}|" +
             $"{e.BoundingBox.Height}|" +
             string.Join(";", e.Embedding
-                .Select(f => f.ToString(CultureInfo.InvariantCulture))));
+                .Select(f => f.ToString(CultureInfo.InvariantCulture))) + "|" +
+            e.Confidence.ToString(CultureInfo.InvariantCulture));
 
         File.WriteAllLines(FaceEmbeddingsFile, lines);
     }
 
     // =====================================================
-    // face_clusters(Dictionary<string, clusterData>) : cluster ID: {Name(string?), Representative Thumbnail File Path, Representative Thumbnail Bounding Box
+    // face_clusters(Dictionary<string, clusterData>) : cluster ID: {Name(string?), Representative Thumbnail File Path, Representative Thumbnail Bounding Box, Centroid
     private ConcurrentDictionary<string, ClusterData> LoadFaceClusters()
     {
         if (!File.Exists(FaceClusterFile))

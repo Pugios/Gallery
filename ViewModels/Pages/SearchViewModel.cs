@@ -1,6 +1,10 @@
 using Gallery2.Models;
 using Gallery2.Services;
+using Gallery2.ViewModels.Header;
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Controls;
@@ -32,14 +36,13 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
     [ObservableProperty]
     private ObservableCollection<FacePictureItem> _people = [];
 
-    [ObservableProperty]
-    private FacePictureItem? _selectedPerson;
-
     // Gallery
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     [ObservableProperty]
     private ObservableCollection<PictureItem> _pictures = [];
 
+    private readonly ConcurrentDictionary<string, WeakReference<BitmapSource>> _thumbnailCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly SearchHeaderViewModel _searchHeader;
 
     public SearchViewModel(HeaderState headerState, FaceIndexingService faceIndexingService, PersistenceService persistenceService, ShellThumbnailService shellThumbnailService)
     {
@@ -47,41 +50,52 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
         _faceIndexingService = faceIndexingService;
         _persistenceService = persistenceService;
         _shellThumbnailService = shellThumbnailService;
+        _searchHeader = new SearchHeaderViewModel(ReindexFacesCommand);
     }
 
     public Task OnNavigatedToAsync()
+    {
+        UpdateHeader();
+        _ = LoadFacesAsync();
+        return Task.CompletedTask;
+    }
+
+    private void UpdateHeader()
     {
         _headerState.Icon = SymbolRegular.Search24;
         _headerState.Title = "Search";
         _headerState.Subtitle = "";
         _headerState.IsVisible = true;
-        _headerState.ShowComboBox = false;
-
-        _ = LoadFacesAsync();
-        return Task.CompletedTask;
+        _headerState.HeaderContent = _searchHeader;
     }
 
-    public Task OnNavigatedFromAsync() => Task.CompletedTask;
+    public Task OnNavigatedFromAsync()
+    {
+        _headerState.HeaderContent = null;
+        return Task.CompletedTask;
+    }
 
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // Index Images
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     [RelayCommand]
-    private async Task OnStartIndexing()
+    private async Task ReindexFaces()
     {
         IsIndexing = true;
-        int totalSteps = 2;
+        _searchHeader.IsIndexing = true;
 
         var progress = new Progress<FaceIndexingProgress>(update =>
         {
             StepText = update.Title;
-            Progress = update.TotalFiles > 0 ? (update.Step - 1 + update.ProcessedFiles / (double)update.TotalFiles) * 100.0 / totalSteps : 0;
+            Progress = update.TotalFiles > 0 ? (update.ProcessedFiles / (double)update.TotalFiles) * 100.0 : 0;
         });
 
+        await _faceIndexingService.DeleteIndex(progress);
         await _faceIndexingService.IndexUnprocessedAsync(progress);
         await LoadFacesAsync();
 
         IsIndexing = false;
+        _searchHeader.IsIndexing = false;
     }
 
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -107,42 +121,49 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
             foreach (FacePictureItem person in people)
             {
                 var cluster = clusters[person.ClusterId];
-                person.Thumbnail = LoadFaceThumbnail(cluster.RepresentativeFilePath, cluster.RepresentativeBoundingBox);
+                int rotation = _persistenceService.MetadataCache.TryGetValue(cluster.RepresentativeFilePath, out var meta)
+                    ? meta.Rotation ?? 0 : 0;
+                person.Thumbnail = LoadFaceThumbnail(cluster.RepresentativeFilePath, cluster.RepresentativeBoundingBox, rotation);
             }
         });
     }
 
-    private static BitmapSource? LoadFaceThumbnail(string filePath, FaceRect rect)
+    private static BitmapSource? LoadFaceThumbnail(string filePath, Rect rect, int rotation)
     {
         try
         {
+            // Load at full resolution — face rect coords are in full-res space (no scaling math needed).
+            // Only one image per cluster representative is loaded this way, so memory cost is acceptable.
             var bitmap = new BitmapImage();
             bitmap.BeginInit();
             bitmap.UriSource = new Uri(filePath);
-            bitmap.DecodePixelWidth = 500;
             bitmap.CacheOption = BitmapCacheOption.OnLoad;
             bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
             bitmap.EndInit();
             bitmap.Freeze();
 
-            // Bounding box coords are in 500×500 detection space.
-            // Scale to the actual decoded pixel size (aspect-ratio-preserved).
-            double scaleX = bitmap.PixelWidth / 500.0;
-            double scaleY = bitmap.PixelHeight / 500.0;
+            // Apply EXIF rotation so coordinates match Cv2.ImRead's auto-rotated space
+            BitmapSource source = bitmap;
+            if (rotation != 0)
+            {
+                var rotated = new TransformedBitmap(bitmap, new RotateTransform(rotation));
+                rotated.Freeze();
+                source = rotated;
+            }
 
-            int x = (int)(rect.X * scaleX);
-            int y = (int)(rect.Y * scaleY);
-            int w = Math.Max(1, (int)(rect.Width * scaleX));
-            int h = Math.Max(1, (int)(rect.Height * scaleY));
+            // Expand the bounding box to show torso context (~2.5× the face size, centered)
+            const double padding = 1.5; // extra 1.5× on each side → total ~2.5× the face
+            int padX = (int)(rect.Width * padding);
+            int padY = (int)(rect.Height * padding);
 
-            x = Math.Clamp(x, 0, bitmap.PixelWidth - 1);
-            y = Math.Clamp(y, 0, bitmap.PixelHeight - 1);
-            w = Math.Min(w, bitmap.PixelWidth - x);
-            h = Math.Min(h, bitmap.PixelHeight - y);
+            int x = (int)Math.Clamp(rect.X - padX, 0, source.PixelWidth - 1);
+            int y = (int)Math.Clamp(rect.Y - padY, 0, source.PixelHeight - 1);
+            int x2 = (int)Math.Clamp(rect.X + rect.Width + padX, x + 1, source.PixelWidth);
+            int y2 = (int)Math.Clamp(rect.Y + rect.Height + padY, y + 1, source.PixelHeight);
+            int w = x2 - x;
+            int h = y2 - y;
 
-            if (w <= 0 || h <= 0) return bitmap;
-
-            var cropped = new CroppedBitmap(bitmap, new Int32Rect(x, y, w, h));
+            var cropped = new CroppedBitmap(source, new Int32Rect(x, y, w, h));
             cropped.Freeze();
             return cropped;
         }
@@ -155,47 +176,74 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
     [RelayCommand]
     private async Task OnSelectPerson(FacePictureItem person)
     {
-        SelectedPerson = person;
-
+        Pictures.Clear();
         // Find every file that contains this person's cluster ID
-        var matchingFiles = _persistenceService.FaceIndex
+        var matchingImages = _persistenceService.FaceIndex
             .Where(kvp => kvp.Value.Contains(person.ClusterId, StringComparer.OrdinalIgnoreCase))
-            .Select(kvp => kvp.Key)
+            .Select(kvp => _persistenceService.MetadataCache.TryGetValue(kvp.Key, out var meta)
+                ? new PictureItem(meta)
+                : new PictureItem(kvp.Key))
             .ToList();
 
-        var items = matchingFiles.Select(f => new PictureItem(f)).ToList();
-        Pictures = new ObservableCollection<PictureItem>(items);
+
+        Pictures = new ObservableCollection<PictureItem>(matchingImages);
 
         // Load thumbnails with max 4 in parallel
         using var semaphore = new SemaphoreSlim(4);
-        var tasks = items.Select(async item =>
+        var tasks = Pictures.Select(async item =>
         {
             await semaphore.WaitAsync();
             try
             {
-                item.Thumbnail = await Task.Run(() =>
-                    _shellThumbnailService.GetThumbnail(item.FilePath, 500)
-                    ?? LoadThumbnailFallback(item.FilePath));
+                item.Thumbnail = await Task.Run(() => LoadThumbnail(item));
             }
             finally { semaphore.Release(); }
         });
         await Task.WhenAll(tasks);
     }
 
-    private static BitmapSource? LoadThumbnailFallback(string filePath)
+    private BitmapSource? LoadThumbnail(PictureItem picture)
+    {
+        if (_thumbnailCache.TryGetValue(picture.FilePath, out var weakRef) && weakRef.TryGetTarget(out var cached))
+            return cached;
+
+        var shellResult = _shellThumbnailService.GetThumbnail(picture.FilePath, 500);
+        if (shellResult is not null)
+        {
+            _thumbnailCache[picture.FilePath] = new WeakReference<BitmapSource>(shellResult);
+            return shellResult;
+        }
+
+        var fallback = LoadThumbnailFallback(picture);
+        _thumbnailCache[picture.FilePath] = new WeakReference<BitmapSource>(fallback);
+        return fallback;
+    }
+
+    private static BitmapSource? LoadThumbnailFallback(PictureItem picture)
     {
         try
         {
             var bitmap = new BitmapImage();
             bitmap.BeginInit();
-            bitmap.UriSource = new Uri(filePath);
-            bitmap.DecodePixelWidth = 500;
+            bitmap.UriSource = new Uri(picture.FilePath);
+            bitmap.DecodePixelWidth = 500;           // decode at thumbnail size, not full res
             bitmap.CacheOption = BitmapCacheOption.OnLoad;
             bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
             bitmap.EndInit();
-            bitmap.Freeze();
+            bitmap.Freeze();                         // required to pass across threads safely
+
+            // Rotate the image according to the EXIF orientation
+            var transform = new RotateTransform(picture.Rotation ?? 0);
+            transform.Freeze();
+            var rotated = new TransformedBitmap(bitmap, transform);
+            rotated.Freeze();
+
             return bitmap;
         }
-        catch { return null; }
+        catch
+        {
+            return null;
+        }
     }
 }
+

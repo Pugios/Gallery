@@ -1,8 +1,11 @@
 ﻿using Gallery2.Models;
 using OpenCvSharp;
+using System.Diagnostics;
+using Rect = System.Windows.Rect;
 using Size = OpenCvSharp.Size;
 
 namespace Gallery2.Services;
+
 public class FaceIndexingService
 {
     private readonly FaceDetectionService _detector;
@@ -21,84 +24,88 @@ public class FaceIndexingService
         _persistenceService = persistenceService;
     }
 
+    public async Task DeleteIndex(IProgress<FaceIndexingProgress>? progress = null)
+    {
+        progress?.Report(new FaceIndexingProgress(0, 1, "Deleting Index"));
+        await Task.Run(() =>
+        {
+            _persistenceService.FaceEmbeddings.Clear();
+            _persistenceService.FaceClusters.Clear();
+            _persistenceService.FaceIndex.Clear();
+            _persistenceService.SaveFaceEmbeddings();
+            _persistenceService.SaveFaceClusters();
+            _persistenceService.SaveFaceIndex();
+        });
+    }
+
     public async Task IndexUnprocessedAsync(IProgress<FaceIndexingProgress>? progress = null)
     {
         var faceIndex = _persistenceService.FaceIndex;
-        // metadataCache Keys contain all image paths
-        var metadataCache = _persistenceService.MetadataCache;
 
-        // Find files that are not yet indexed
-        var unprocessed = metadataCache.Keys
-            .Where(path => !faceIndex.ContainsKey(path))
+        var unprocessed = _persistenceService.MetadataCache
+            .Where(kvp => !faceIndex.ContainsKey(kvp.Key))
+            .Select(kvp => new PictureItem(kvp.Value))
             .ToList();
 
-        await IndexFilesAsync(unprocessed, progress);
+        await IndexImagesAsync(unprocessed, progress);
     }
 
-    private async Task IndexFilesAsync(List<string> files, IProgress<FaceIndexingProgress>? progress = null)
+    private async Task IndexImagesAsync(List<PictureItem> pictures, IProgress<FaceIndexingProgress>? progress = null)
     {
-        if (files.Count == 0) return;
+        if (pictures.Count == 0) return;
 
         var alreadyEmbedded = _persistenceService.FaceEmbeddings
             .Select(e => e.FilePath)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var filesToEmbed = files.Where(e => !alreadyEmbedded.Contains(e)).ToList();
+        var toEmbed = pictures.Where(p => !alreadyEmbedded.Contains(p.FilePath)).ToList();
 
         // Detect and Embed Faces
-        progress?.Report(new FaceIndexingProgress(0, filesToEmbed.Count, 1, "Detecting Faces"));
+        progress?.Report(new FaceIndexingProgress(0, toEmbed.Count, "Detecting and Embedding Faces"));
         await Task.Run(() =>
         {
-            for (int i = 0; i < filesToEmbed.Count; i++)
+            for (int i = 0; i < toEmbed.Count; i++)
             {
-                ProcessImage(filesToEmbed[i]);
-                progress?.Report(new FaceIndexingProgress(i + 1, filesToEmbed.Count, 1, "Detecting Faces"));
+                DetectAndEmbed(toEmbed[i]);
+                progress?.Report(new FaceIndexingProgress(i + 1, toEmbed.Count, "Detecting and Embedding Faces"));
             }
         });
 
         _persistenceService.SaveFaceEmbeddings();
 
         // Cluster Faces
-        progress?.Report(new FaceIndexingProgress(0, files.Count, 2, "Clustering Faces"));
+        progress?.Report(new FaceIndexingProgress(0, pictures.Count, "Clustering Faces"));
         await Task.Run(() =>
         {
-            _clusterer.ClusterFaces(_persistenceService.FaceEmbeddings, progress);
+            _clusterer.ClusterFaces(progress);
         });
 
         _persistenceService.SaveFaceClusters();
         _persistenceService.SaveFaceIndex();
     }
 
-    private void ProcessImage(string imagePath)
+    private void DetectAndEmbed(PictureItem picture)
     {
         if (_persistenceService.FaceEmbeddings.Any(e =>
-              string.Equals(e.FilePath, imagePath, StringComparison.OrdinalIgnoreCase)))
+              string.Equals(e.FilePath, picture.FilePath, StringComparison.OrdinalIgnoreCase)))
             return;
 
-        // Read Image
-        using var original = Cv2.ImRead(imagePath);
-        if (original.Empty()) return;
+        using var image = Cv2.ImRead(picture.FilePath);
+        if (image.Empty()) return;
 
-        using var resized = new Mat();
-        Cv2.Resize(original, resized, new Size(500, 500));
-
-        // Detect Faces
-        var detectedFaces = _detector.DetectFaces(resized);
+        var detectedFaces = _detector.DetectFaces(image);
 
         foreach (var face in detectedFaces)
         {
-            // Embed Faces
-            var embedding = _embedder.GetEmbedding(resized, face.BoundingBox);
+            var embedding = _embedder.GetEmbedding(image, face);
             if (embedding is null) continue;
 
-            var faceRect = new FaceRect(
-              face.BoundingBox.X,
-              face.BoundingBox.Y,
-              face.BoundingBox.Width,
-              face.BoundingBox.Height);
+            var faceRect = new Rect(
+                (int)face[0], (int)face[1],
+                (int)face[2], (int)face[3]);
 
-            // Store Embeddings
-            _persistenceService.FaceEmbeddings.Add(new EmbeddingData(imagePath, faceRect, embedding));
+            float confidence = face[14];
+            _persistenceService.FaceEmbeddings.Add(new EmbeddingData(picture.FilePath, faceRect, embedding, confidence));
         }
     }
 }

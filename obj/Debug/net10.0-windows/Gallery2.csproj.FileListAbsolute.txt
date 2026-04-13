@@ -68,3 +68,7 @@ C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\
 C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\Assets\Models\face_recognition_sface_2021dec_int8bq.onnx
 C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\obj\Debug\net10.0-windows\Views\Pages\SearchPage.g.cs
 C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\obj\Debug\net10.0-windows\Views\Pages\SearchPage.baml
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\obj\Debug\net10.0-windows\Views\Windows\ImageWindow.g.cs
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\obj\Debug\net10.0-windows\Views\Windows\ImageWindow.baml
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\Assets\Models\face_detection_yunet_2023mar.onnx
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\Assets\Models\face_recognition_sface_2021dec.onnx
