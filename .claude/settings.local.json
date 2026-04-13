@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find C:UsersmatarDocumentsPugiosDocumentsOwnProjectsPicture_ShowcaserGallery2 -type f -name *.xaml -o -name *ViewModel*)"
+      "Bash(find C:UsersmatarDocumentsPugiosDocumentsOwnProjectsPicture_ShowcaserGallery2 -type f -name *.xaml -o -name *ViewModel*)",
+      "WebFetch(domain:link.springer.com)",
+      "WebFetch(domain:arxiv.org)"
     ]
   }
 }

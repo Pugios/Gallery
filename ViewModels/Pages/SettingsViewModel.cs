@@ -1,4 +1,5 @@
 ﻿using Gallery2.Models;
+using Gallery2.ViewModels.Header;
 using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
@@ -16,9 +17,12 @@ namespace Gallery2.ViewModels.Pages
         private ApplicationTheme _currentTheme = ApplicationTheme.Unknown;
 
         private readonly HeaderState _headerState;
+        private readonly SettingsHeaderViewModel _settingsHeader;
+
         public SettingsViewModel(HeaderState headerState)
         {
             _headerState = headerState;
+            _settingsHeader = new SettingsHeaderViewModel();
         }
 
         public Task OnNavigatedToAsync()
@@ -26,13 +30,17 @@ namespace Gallery2.ViewModels.Pages
             if (!_isInitialized)
                 InitializeViewModel();
 
+            UpdateHeader();
+            return Task.CompletedTask;
+        }
+
+        private void UpdateHeader()
+        {
             _headerState.Icon = SymbolRegular.Settings24;
             _headerState.Title = "Settings";
             _headerState.Subtitle = "";
             _headerState.IsVisible = true;
-            _headerState.ShowComboBox = false;
-
-            return Task.CompletedTask;
+            _headerState.HeaderContent = _settingsHeader;
         }
 
         public Task OnNavigatedFromAsync() => Task.CompletedTask;

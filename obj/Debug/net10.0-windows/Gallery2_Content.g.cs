@@ -9,6 +9,8 @@
 //------------------------------------------------------------------------------
 
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("wpfui-icon.ico")]
+[assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("assets/models/face_detection_yunet_2023mar.onnx")]
+[assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("assets/models/face_recognition_sface_2021dec.onnx")]
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("assets/models/face_detection_yunet_2023mar_int8bq.onnx")]
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("assets/models/face_recognition_sface_2021dec_int8bq.onnx")]
 

@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:Gallery2.Views.Windows"
     xmlns:pages="clr-namespace:Gallery2.Views.Pages"
+    xmlns:vmh="clr-namespace:Gallery2.ViewModels.Header"
     xmlns:helpers="clr-namespace:Gallery2.Helpers"
     xmlns:models="clr-namespace:Gallery2.Models"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
@@ -42,6 +43,27 @@
                     TypeName="models:GroupMode" />
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
+
+        <!-- HEADER STATES:-->
+        <!-- Gallery Header -->
+        <DataTemplate
+            DataType="{x:Type vmh:GalleryHeaderViewModel}">
+            <ComboBox
+                VerticalAlignment="Center"
+                Width="120"
+                ItemsSource="{Binding Source={StaticResource GroupModeValues}}"
+                SelectedItem="{Binding GalleryState.SelectedGroupMode}" />
+        </DataTemplate>
+
+        <!-- Search Header -->
+        <DataTemplate
+            DataType="{x:Type vmh:SearchHeaderViewModel}">
+            <ui:Button
+                Content="Reindex Faces"
+                Icon="{ui:SymbolIcon ArrowClockwise24}"
+                Command="{Binding ReindexFacesCommand}"
+                Visibility="{Binding IsNotIndexing, Converter={StaticResource BoolToVis}}" />
+        </DataTemplate>
     </Window.Resources>
 
     <Grid>
@@ -100,7 +122,7 @@
                 <ui:NavigationViewItem
                     Content="Search"
                     Icon="{ui:SymbolIcon Search24}"
-                    TargetPageType="{x:Type pages:SearchPage}"/>
+                    TargetPageType="{x:Type pages:SearchPage}" />
 
             </ui:NavigationView.MenuItems>
 
@@ -146,13 +168,11 @@
                             Text="{Binding ViewModel.HeaderState.Subtitle}" />
                     </StackPanel>
 
-                    <ComboBox
+                    <ContentControl
                         Grid.Column="1"
                         VerticalAlignment="Center"
-                        Width="120"
-                        Visibility="{Binding ViewModel.HeaderState.ShowComboBox, Converter={StaticResource BoolToVis}}"
-                        ItemsSource="{Binding Source={StaticResource GroupModeValues}}"
-                        SelectedItem="{Binding ViewModel.GalleryState.SelectedGroupMode}" />
+                        HorizontalAlignment="Right"
+                        Content="{Binding ViewModel.HeaderState.HeaderContent}" />
                 </Grid>
             </ui:NavigationView.Header>
 

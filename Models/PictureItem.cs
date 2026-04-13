@@ -10,6 +10,8 @@ public partial class PictureItem : ObservableObject
     public DateTime? DateTaken { get; init; }
     public double? Latitude { get; init; }
     public double? Longitude { get; init; }
+    public int? Rotation { get; init; }
+
     public string FilePath { get; }
 
     [ObservableProperty]
@@ -18,6 +20,14 @@ public partial class PictureItem : ObservableObject
     public PictureItem(string filePath)
     {
         FilePath = filePath;
+    }
+
+    public PictureItem(CachedFileMetadata meta) : this(meta.FilePath)
+    {
+        DateTaken = meta.DateTaken;
+        Latitude = meta.Latitude;
+        Longitude = meta.Longitude;
+        Rotation = meta.Rotation;
     }
 }
 

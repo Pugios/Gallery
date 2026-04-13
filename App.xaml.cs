@@ -71,7 +71,9 @@ namespace Gallery2
                 services.AddSingleton<FaceClusteringService>();
                 services.AddSingleton<FaceIndexingService>();
 
-
+                // Image Window
+                services.AddTransient<ImageWindow>();
+                services.AddTransient<ImageWindowViewModel>();
 
             }).Build();
 

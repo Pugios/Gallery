@@ -1,6 +1,8 @@
 ﻿using Gallery2.Helpers;
 using Gallery2.Models;
 using Gallery2.Services;
+using Gallery2.ViewModels.Header;
+using Gallery2.Views.Windows;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
 using Microsoft.Win32;
@@ -9,6 +11,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Windows.Data;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Wpf.Ui.Abstractions.Controls;
@@ -27,6 +31,7 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
     private readonly GalleryState _galleryState;
     // Headerstate to change the header from this page (title, subtitle, icon)
     private readonly HeaderState _headerState;
+    private readonly GalleryHeaderViewModel _galleryHeader;
     // PersistenceService to load/save folders and metadata
     private readonly PersistenceService _persistenceService;
     // Service to load Windows Shell thumbnails
@@ -68,6 +73,7 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         _persistenceService = persistenceService;
         _shellThumbnailService = shellThumbnailService;
         _faceIndexingService = faceIndexingService;
+        _galleryHeader = new GalleryHeaderViewModel(galleryState);
 
         _galleryState.PropertyChanged += OnToolbarStateChanged;
     }
@@ -87,12 +93,14 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
             await LoadFoldersAsync([_galleryState.ActiveFolder]);
         }
     }
-    public Task OnNavigatedFromAsync() => Task.CompletedTask;
+    public Task OnNavigatedFromAsync()
+    {
+        return Task.CompletedTask;
+    }
 
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // Selecting and Loading Pictures
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
     [RelayCommand]
     private async Task OnAddFolder()
     {
@@ -107,7 +115,7 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         Pictures.Clear();
         await Dispatcher.Yield(DispatcherPriority.Background);
 
-        var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase){ ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".tif", ".webp", ".mp4", ".mov", ".avi", ".mkv" };
+        var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".tif", ".webp", ".mp4", ".mov", ".avi", ".mkv" };
 
         // Scan the folder on a background thread so the UI stays responsive
         List<PictureItem> tempPictures = new();
@@ -138,12 +146,14 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
                 DateTime? dateTaken = null;
                 double? lat = null;
                 double? lng = null;
+                int? rotation = null;
 
                 if (cache.TryGetValue(file, out var cached))
                 {
                     dateTaken = cached.DateTaken;
                     lat = cached.Latitude;
                     lng = cached.Longitude;
+                    rotation = cached.Rotation;
                 }
                 else
                 {
@@ -160,16 +170,22 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
                     lat = location?.Latitude;
                     lng = location?.Longitude;
 
-                    cache[file] = new CachedFileMetadata(file, dateTaken, lat, lng);
+                    // Rotation
+                    var ifd0 = directories.OfType<ExifIfd0Directory>().FirstOrDefault();
+                    var rot = (ifd0 != null && ifd0.TryGetInt32(ExifDirectoryBase.TagOrientation, out int o) ? o : 0) switch
+                    {
+                        3 => 180,
+                        6 => 90,
+                        8 => 270,
+                        _ => 0
+                    };
+                    rotation = rot;
+
+                    cache[file] = new CachedFileMetadata(file, dateTaken, lat, lng, rot);
                     cacheUpdated = true;
                 }
 
-                tempPictures.Add(new PictureItem(file)
-                {
-                    DateTaken = dateTaken,
-                    Latitude = lat,
-                    Longitude = lng
-                });
+                tempPictures.Add(new PictureItem(cache[file]));
 
                 if (total > 0)
                     ((IProgress<double>)progress).Report(++processed * 100.0 / total);
@@ -180,7 +196,7 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         {
             _persistenceService.SaveMetadataCache(cache.Values);
             // Start Facial Recognition if there was new images!
-            _ = _faceIndexingService.IndexUnprocessedAsync(); 
+            _ = _faceIndexingService.IndexUnprocessedAsync();
         }
 
         Pictures = new ObservableCollection<PictureItem>(tempPictures.OrderBy(p => p.DateTaken ?? DateTime.MaxValue));
@@ -191,14 +207,15 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         UpdateHeader();
         IsLoading = false;
 
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         // Load Thumbnails
-        // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         using var semaphore = new SemaphoreSlim(4);
         var tasks = Pictures.Select(async item =>
         {
             await semaphore.WaitAsync();
-            try { item.Thumbnail = await Task.Run(() => LoadThumbnail(item.FilePath)); }
+            try
+            {
+                item.Thumbnail = await Task.Run(() => LoadThumbnail(item));
+            }
             finally { semaphore.Release(); }
         });
         await Task.WhenAll(tasks);
@@ -217,7 +234,7 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         _headerState.Subtitle += picCount > 0 ? $"{picCount} photo{(picCount > 1 ? "s" : "")}" : "";
         _headerState.Subtitle += vidCount > 0 ? $"{(picCount > 0 ? " · " : "")}{vidCount} video{(vidCount > 1 ? "s" : "")}" : "";
         _headerState.IsVisible = true;
-        _headerState.ShowComboBox = true;
+        _headerState.HeaderContent = _galleryHeader;
     }
 
     private static bool IsVideo(string path)
@@ -231,35 +248,41 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     // Load weak references to each Thumbnail. (let garbage collector remove thumbnails if memory under pressure)
-    private BitmapSource? LoadThumbnail(string filePath)
+    private BitmapSource? LoadThumbnail(PictureItem picture)
     {
-        if (_thumbnailCache.TryGetValue(filePath, out var weakRef) && weakRef.TryGetTarget(out var cached))
+        if (_thumbnailCache.TryGetValue(picture.FilePath, out var weakRef) && weakRef.TryGetTarget(out var cached))
             return cached;
 
-        var shellResult = _shellThumbnailService.GetThumbnail(filePath, 500);
+        var shellResult = _shellThumbnailService.GetThumbnail(picture.FilePath, 500);
         if (shellResult is not null)
         {
-            _thumbnailCache[filePath] = new WeakReference<BitmapSource>(shellResult);
+            _thumbnailCache[picture.FilePath] = new WeakReference<BitmapSource>(shellResult);
             return shellResult;
         }
 
-        var fallback = LoadThumbnailFallback(filePath);
-        _thumbnailCache[filePath] = new WeakReference<BitmapSource>(fallback);
+        var fallback = LoadThumbnailFallback(picture);
+        _thumbnailCache[picture.FilePath] = new WeakReference<BitmapSource>(fallback);
         return fallback;
     }
 
-    private static BitmapSource? LoadThumbnailFallback(string filePath)
+    private static BitmapSource? LoadThumbnailFallback(PictureItem picture)
     {
         try
         {
             var bitmap = new BitmapImage();
             bitmap.BeginInit();
-            bitmap.UriSource = new Uri(filePath);
+            bitmap.UriSource = new Uri(picture.FilePath);
             bitmap.DecodePixelWidth = 500;           // decode at thumbnail size, not full res
             bitmap.CacheOption = BitmapCacheOption.OnLoad;
             bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
             bitmap.EndInit();
-            bitmap.Freeze();                         // required to pass across threads safely
+            bitmap.Freeze();
+
+            // Rotate the image according to the EXIF orientation
+            var transform = new RotateTransform(picture.Rotation ?? 0);
+            transform.Freeze();
+            var rotated = new TransformedBitmap(bitmap, transform);
+            rotated.Freeze();
 
             return bitmap;
         }
