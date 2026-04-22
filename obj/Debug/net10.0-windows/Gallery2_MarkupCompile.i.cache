@@ -11,10 +11,10 @@ false
 TRACE;DEBUG;NET;NET10_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NET9_0_OR_GREATER;NET10_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
 C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\App.xaml
 5-1983070773
-5834401993
+6-1263048064
 35-2088980150
 240-1769556336
 Views\Pages\GalleryPage.xaml;Views\Pages\SearchPage.xaml;Views\Pages\SettingsPage.xaml;Views\Windows\ImageWindow.xaml;Views\Windows\MainWindow.xaml;
 
-True
+False
 

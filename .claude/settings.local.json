@@ -3,7 +3,8 @@
     "allow": [
       "Bash(find C:UsersmatarDocumentsPugiosDocumentsOwnProjectsPicture_ShowcaserGallery2 -type f -name *.xaml -o -name *ViewModel*)",
       "WebFetch(domain:link.springer.com)",
-      "WebFetch(domain:arxiv.org)"
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

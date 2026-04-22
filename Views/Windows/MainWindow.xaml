@@ -58,11 +58,25 @@
         <!-- Search Header -->
         <DataTemplate
             DataType="{x:Type vmh:SearchHeaderViewModel}">
-            <ui:Button
-                Content="Reindex Faces"
-                Icon="{ui:SymbolIcon ArrowClockwise24}"
-                Command="{Binding ReindexFacesCommand}"
-                Visibility="{Binding IsNotIndexing, Converter={StaticResource BoolToVis}}" />
+            <StackPanel Orientation="Horizontal">
+                <ui:Button
+                    Content="Return to Grid"
+                    Icon="{ui:SymbolIcon GridDots24}"
+                    Command="{Binding ReturnToGridCommand}"
+                    Margin="0,0,8,0"
+                    Visibility="{Binding IsPersonSelected, Converter={StaticResource BoolToVis}}" />
+                <ui:Button
+                    Content="Dissolve Face"
+                    Icon="{ui:SymbolIcon PersonDelete24}"
+                    Command="{Binding DissolvePersonCommand}"
+                    Margin="0,0,8,0"
+                    Visibility="{Binding IsPersonSelected, Converter={StaticResource BoolToVis}}" />
+                <ui:Button
+                    Content="Reindex Faces"
+                    Icon="{ui:SymbolIcon ArrowClockwise24}"
+                    Command="{Binding ReindexFacesCommand}"
+                    Visibility="{Binding IsNotIndexing, Converter={StaticResource BoolToVis}}" />
+            </StackPanel>
         </DataTemplate>
     </Window.Resources>
 

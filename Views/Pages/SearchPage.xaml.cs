@@ -2,10 +2,12 @@ using Gallery2.Models;
 using Gallery2.ViewModels.Pages;
 using Gallery2.Views.Windows;
 using Microsoft.Extensions.DependencyInjection;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Wpf.Ui.Abstractions.Controls;
 
 namespace Gallery2.Views.Pages;
@@ -21,11 +23,34 @@ public partial class SearchPage : INavigableView<SearchViewModel>
         DataContext = this;
         InitializeComponent();
         Loaded += OnLoaded;
+        ViewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         _scrollViewer = FindScrollViewer(ImageGrid);
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(SearchViewModel.IsPersonSelected) || !ViewModel.IsPersonSelected)
+            return;
+
+        // Defer until after the strip's Visibility has been applied and layout is complete.
+        Dispatcher.BeginInvoke(ScrollSelectedPersonIntoView, DispatcherPriority.Background);
+    }
+
+    private void ScrollSelectedPersonIntoView()
+    {
+        int index = -1;
+        for (int i = 0; i < ViewModel.People.Count; i++)
+        {
+            if (ViewModel.People[i].IsSelected) { index = i; break; }
+        }
+        if (index < 0) return;
+
+        if (PeopleStrip.ItemContainerGenerator.ContainerFromIndex(index) is FrameworkElement container)
+            container.BringIntoView();
     }
 
     private void ImageGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -40,6 +65,12 @@ public partial class SearchPage : INavigableView<SearchViewModel>
             window.ViewModel.Load(picture);
             window.Show();
         }
+    }
+
+    private void PeopleStripScroll_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        PeopleStripScroll.ScrollToHorizontalOffset(PeopleStripScroll.HorizontalOffset - e.Delta / 3.0);
+        e.Handled = true;
     }
 
     private void ImageGrid_PreviewMouseWheel(object sender, MouseWheelEventArgs e)

@@ -15,7 +15,7 @@ public class FaceEmbeddingService : IDisposable
     public FaceEmbeddingService()
     {
         var modelPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Models",
-            "face_recognition_sface_2021dec.onnx");
+            "webface_r50.onnx");
         _net = Net.ReadNetFromONNX(modelPath);
     }
 
@@ -45,7 +45,7 @@ public class FaceEmbeddingService : IDisposable
 
         // "fc1" is the layer name OpenCV's own FaceRecognizerSF::feature() uses.
         // Forward() with no arg returns the last topological layer, which may differ.
-        using var output = _net.Forward("fc1");
+        using var output = _net.Forward();
         using var flat = output.Reshape(1, 1);
 
         flat.GetArray(out float[] embedding);

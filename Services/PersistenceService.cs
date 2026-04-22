@@ -99,7 +99,7 @@ public class PersistenceService
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // Face Indexing
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    // face_embeddings(embeddingData[]) : FilePath(string), BoundingBox(Rect), Embeddings(float[128]), Confidence(float)
+    // face_embeddings(embeddingData[]) : FilePath(string), BoundingBox(Rect), Embeddings(float[]), Confidence(float)
     // List of Faces and their Embeddings
     private List<EmbeddingData> LoadFaceEmbeddings()
     {
@@ -119,11 +119,12 @@ public class PersistenceService
                 continue;
 
             var embeddingParts = parts[5].Split(';');
-            if (embeddingParts.Length != 128) continue;
+            int embLen = embeddingParts.Length;
+            if (embLen == 0) continue;
 
-            var embedding = new float[128];
+            var embedding = new float[embLen];
             var valid = true;
-            for (int i = 0; i < 128; i++)
+            for (int i = 0; i < embLen; i++)
             {
                 if (!float.TryParse(embeddingParts[i], NumberStyles.Any, CultureInfo.InvariantCulture, out embedding[i]))
                 {
