@@ -38,6 +38,13 @@ public class FaceIndexingService
         });
     }
 
+    public async Task DissolveClusterAsync(string clusterId)
+    {
+        await Task.Run(() => _clusterer.DissolveCluster(clusterId));
+        _persistenceService.SaveFaceClusters();
+        _persistenceService.SaveFaceIndex();
+    }
+
     public async Task IndexUnprocessedAsync(IProgress<FaceIndexingProgress>? progress = null)
     {
         var faceIndex = _persistenceService.FaceIndex;
@@ -94,6 +101,13 @@ public class FaceIndexingService
         if (image.Empty()) return;
 
         var detectedFaces = _detector.DetectFaces(image);
+
+        if (detectedFaces.Count == 0)
+        {
+            // Mark as processed so incremental re-indexes don't re-detect this image every time.
+            _persistenceService.FaceIndex.TryAdd(picture.FilePath, []);
+            return;
+        }
 
         foreach (var face in detectedFaces)
         {

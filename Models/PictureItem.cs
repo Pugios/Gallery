@@ -38,5 +38,8 @@ public partial class FacePictureItem : ObservableObject
 
     [ObservableProperty]
     private BitmapSource? _thumbnail;
+
+    [ObservableProperty]
+    private bool _isSelected;
 }
 

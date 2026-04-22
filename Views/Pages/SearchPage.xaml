@@ -14,18 +14,57 @@
     Title="SearchPage">
 
     <Page.Resources>
-        <BooleanToVisibilityConverter
-            x:Key="BoolToVis" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- Face button — shared by both the full-page grid and the compact strip -->
+        <DataTemplate x:Key="FaceItemTemplate">
+            <Button
+                Width="100"
+                Margin="8,6"
+                Padding="0"
+                Background="Transparent"
+                BorderThickness="0"
+                Command="{Binding DataContext.ViewModel.SelectPersonCommand,
+                          RelativeSource={RelativeSource AncestorType=Page}}"
+                CommandParameter="{Binding}">
+                <StackPanel>
+                    <Grid
+                        Width="72"
+                        Height="72"
+                        HorizontalAlignment="Center">
+                        <Ellipse>
+                            <Ellipse.Fill>
+                                <ImageBrush
+                                    ImageSource="{Binding Thumbnail}"
+                                    Stretch="UniformToFill" />
+                            </Ellipse.Fill>
+                        </Ellipse>
+                        <Ellipse
+                            x:Name="SelectionRing"
+                            Stroke="Black"
+                            StrokeThickness="2" />
+                    </Grid>
+                    <TextBlock
+                        Text="{Binding Name}"
+                        HorizontalAlignment="Center"
+                        FontSize="11"
+                        Margin="0,4,0,0"
+                        TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Button>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter TargetName="SelectionRing" Property="Stroke"
+                            Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
     </Page.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition
-                Height="Auto" />
-            <RowDefinition
-                Height="Auto" />
-            <RowDefinition
-                Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <!-- Progress Bar -->
@@ -46,82 +85,74 @@
                 Height="8" />
         </StackPanel>
 
-        <!-- People face selector -->
+        <!-- ═══ FULL-PAGE GRID — no person selected ══════════════════════════ -->
         <ScrollViewer
             Grid.Row="1"
-            HorizontalScrollBarVisibility="Auto"
-            VerticalScrollBarVisibility="Disabled">
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Disabled"
+            Visibility="{Binding ViewModel.IsPersonNotSelected, Converter={StaticResource BoolToVis}}">
             <ItemsControl
-                ItemsSource="{Binding ViewModel.People}">
+                ItemsSource="{Binding ViewModel.People}"
+                ItemTemplate="{StaticResource FaceItemTemplate}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" />
+                        <WrapPanel Orientation="Horizontal" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
-
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Button
-                            Width="100"
-                            Margin="8,4"
-                            Padding="0"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Command="{Binding DataContext.ViewModel.SelectPersonCommand,
-                        RelativeSource={RelativeSource AncestorType=Page}}"
-                            CommandParameter="{Binding}">
-                            <StackPanel>
-                                <Grid
-                                    Width="72"
-                                    Height="72"
-                                    HorizontalAlignment="Center">
-                                    <Ellipse>
-                                        <Ellipse.Fill>
-                                            <ImageBrush
-                                                ImageSource="{Binding Thumbnail}"
-                                                Stretch="UniformToFill" />
-                                        </Ellipse.Fill>
-                                    </Ellipse>
-                                    <Ellipse
-                                        Stroke="{DynamicResource AccentFillColorDefaultBrush}"
-                                        StrokeThickness="2" />
-                                </Grid>
-                                <TextBlock
-                                    Text="{Binding Name}"
-                                    HorizontalAlignment="Center"
-                                    FontSize="11"
-                                    Margin="0,4,0,0"
-                                    TextTrimming="CharacterEllipsis" />
-                            </StackPanel>
-                        </Button>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
 
-        <!-- Filtered pictures grid -->
-        <ui:VirtualizingGridView
-            x:Name="ImageGrid"
-            Grid.Row="2"
-            ItemsSource="{Binding ViewModel.Pictures}"
-            SpacingMode="Uniform"
-            VirtualizingPanel.ScrollUnit="Pixel"
-            MouseDoubleClick="ImageGrid_MouseDoubleClick"
-            PreviewMouseWheel="ImageGrid_PreviewMouseWheel">
+        <!-- ═══ STRIP + GALLERY — person selected ════════════════════════════ -->
+        <Grid
+            Grid.Row="1"
+            Visibility="{Binding ViewModel.IsPersonSelected, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-            <ui:VirtualizingGridView.ItemTemplate>
-                <DataTemplate>
-                    <Border
-                        Width="180"
-                        Height="180"
-                        CornerRadius="4"
-                        ClipToBounds="True">
-                        <Image
-                            Source="{Binding Thumbnail}"
-                            Stretch="UniformToFill" />
-                    </Border>
-                </DataTemplate>
-            </ui:VirtualizingGridView.ItemTemplate>
-        </ui:VirtualizingGridView>
+            <!-- Compact horizontal strip -->
+            <ScrollViewer
+                x:Name="PeopleStripScroll"
+                Grid.Row="0"
+                HorizontalScrollBarVisibility="Auto"
+                VerticalScrollBarVisibility="Disabled"
+                PreviewMouseWheel="PeopleStripScroll_PreviewMouseWheel">
+                <ItemsControl
+                    x:Name="PeopleStrip"
+                    ItemsSource="{Binding ViewModel.People}"
+                    ItemTemplate="{StaticResource FaceItemTemplate}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Filtered pictures grid -->
+            <ui:VirtualizingGridView
+                x:Name="ImageGrid"
+                Grid.Row="1"
+                ItemsSource="{Binding ViewModel.Pictures}"
+                SpacingMode="Uniform"
+                VirtualizingPanel.ScrollUnit="Pixel"
+                MouseDoubleClick="ImageGrid_MouseDoubleClick"
+                PreviewMouseWheel="ImageGrid_PreviewMouseWheel">
+                <ui:VirtualizingGridView.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Width="180"
+                            Height="180"
+                            CornerRadius="4"
+                            ClipToBounds="True">
+                            <Image
+                                Source="{Binding Thumbnail}"
+                                Stretch="UniformToFill" />
+                        </Border>
+                    </DataTemplate>
+                </ui:VirtualizingGridView.ItemTemplate>
+            </ui:VirtualizingGridView>
+        </Grid>
     </Grid>
 </Page>

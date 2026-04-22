@@ -31,10 +31,17 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
     [ObservableProperty]
     private double _progress;
 
-    // People Selector 
+    // People Selector
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     [ObservableProperty]
     private ObservableCollection<FacePictureItem> _people = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPersonNotSelected))]
+    private bool _isPersonSelected;
+    public bool IsPersonNotSelected => !IsPersonSelected;
+
+    partial void OnIsPersonSelectedChanged(bool value) => _searchHeader.IsPersonSelected = value;
 
     // Gallery
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -50,11 +57,13 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
         _faceIndexingService = faceIndexingService;
         _persistenceService = persistenceService;
         _shellThumbnailService = shellThumbnailService;
-        _searchHeader = new SearchHeaderViewModel(ReindexFacesCommand);
+        _searchHeader = new SearchHeaderViewModel(ReindexFacesCommand, ReturnToGridCommand, DissolvePersonCommand);
     }
 
     public Task OnNavigatedToAsync()
     {
+        IsPersonSelected = false;
+        Pictures = [];
         UpdateHeader();
         _ = LoadFacesAsync();
         return Task.CompletedTask;
@@ -82,6 +91,8 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
     private async Task ReindexFaces()
     {
         IsIndexing = true;
+        People = [];
+        Pictures = [];
         _searchHeader.IsIndexing = true;
 
         var progress = new Progress<FaceIndexingProgress>(update =>
@@ -98,6 +109,32 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
         _searchHeader.IsIndexing = false;
     }
 
+    [RelayCommand]
+    private void ReturnToGrid()
+    {
+        foreach (var p in People) p.IsSelected = false;
+        Pictures = [];
+        IsPersonSelected = false;
+    }
+
+    [RelayCommand]
+    private async Task DissolvePerson()
+    {
+        var person = People.FirstOrDefault(p => p.IsSelected);
+        if (person is null) return;
+
+        IsIndexing = true;
+        _searchHeader.IsIndexing = true;
+
+        await _faceIndexingService.DissolveClusterAsync(person.ClusterId);
+
+        IsIndexing = false;
+        _searchHeader.IsIndexing = false;
+
+        ReturnToGrid();
+        await LoadFacesAsync();
+    }
+
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // Face Selector
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -105,8 +142,10 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
     {
         var clusters = _persistenceService.FaceClusters;
         if (clusters.IsEmpty) return;
+        var faceIndex = _persistenceService.FaceIndex;
 
         List<FacePictureItem> people = clusters
+            .OrderByDescending(kvp => faceIndex.Count(f => f.Value.Contains(kvp.Key, StringComparer.OrdinalIgnoreCase)))
             .Select(kvp => new FacePictureItem
             {
                 ClusterId = kvp.Key,
@@ -120,7 +159,7 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
         {
             foreach (FacePictureItem person in people)
             {
-                var cluster = clusters[person.ClusterId];
+                if (!clusters.TryGetValue(person.ClusterId, out var cluster)) continue;
                 int rotation = _persistenceService.MetadataCache.TryGetValue(cluster.RepresentativeFilePath, out var meta)
                     ? meta.Rotation ?? 0 : 0;
                 person.Thumbnail = LoadFaceThumbnail(cluster.RepresentativeFilePath, cluster.RepresentativeBoundingBox, rotation);
@@ -177,12 +216,16 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
     private async Task OnSelectPerson(FacePictureItem person)
     {
         Pictures.Clear();
+        foreach (var p in People) p.IsSelected = false;
+        person.IsSelected = true;
+        IsPersonSelected = true;
         // Find every file that contains this person's cluster ID
         var matchingImages = _persistenceService.FaceIndex
             .Where(kvp => kvp.Value.Contains(person.ClusterId, StringComparer.OrdinalIgnoreCase))
             .Select(kvp => _persistenceService.MetadataCache.TryGetValue(kvp.Key, out var meta)
                 ? new PictureItem(meta)
                 : new PictureItem(kvp.Key))
+            .OrderBy(p => p.DateTaken ?? DateTime.MaxValue)
             .ToList();
 
 

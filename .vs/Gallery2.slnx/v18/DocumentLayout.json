@@ -3,32 +3,44 @@
   "WorkspaceRootPath": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\services\\faceclusteringservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:services\\faceclusteringservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\services\\faceembeddingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:services\\faceembeddingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\viewmodels\\pages\\searchviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:viewmodels\\pages\\searchviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\viewmodels\\windows\\imagewindowviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:viewmodels\\windows\\imagewindowviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\services\\persistenceservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:services\\persistenceservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\services\\facedetectionservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:services\\facedetectionservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\services\\faceindexingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:services\\faceindexingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\services\\facedetectionservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:services\\facedetectionservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\services\\faceclusteringservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:services\\faceclusteringservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\viewmodels\\pages\\searchviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:viewmodels\\pages\\searchviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\views\\pages\\searchpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:views\\pages\\searchpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\views\\pages\\settingspage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:views\\pages\\settingspage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\views\\pages\\settingspage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:views\\pages\\settingspage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\models\\pictureitem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:models\\pictureitem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|c:\\users\\matar\\documents\\pugiosdocuments\\ownprojects\\picture_showcaser\\gallery2\\viewmodels\\windows\\imagewindowviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{080EA581-A471-17F4-CC24-FDC122CB1D65}|Gallery2.csproj|solutionrelative:viewmodels\\windows\\imagewindowviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -38,31 +50,31 @@
       "DocumentGroups": [
         {
           "DockedWidth": 153,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "FaceClusteringService.cs",
-              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Services\\FaceClusteringService.cs",
-              "RelativeDocumentMoniker": "Services\\FaceClusteringService.cs",
-              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Services\\FaceClusteringService.cs",
-              "RelativeToolTip": "Services\\FaceClusteringService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAAAAAAAAAAAA==",
+              "DocumentIndex": 4,
+              "Title": "SearchViewModel.cs",
+              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\ViewModels\\Pages\\SearchViewModel.cs",
+              "RelativeDocumentMoniker": "ViewModels\\Pages\\SearchViewModel.cs",
+              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\ViewModels\\Pages\\SearchViewModel.cs",
+              "RelativeToolTip": "ViewModels\\Pages\\SearchViewModel.cs",
+              "ViewState": "AgIAAMIAAAAAAAAAAAAYwN4AAAAdAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-12T17:22:37.488Z",
+              "WhenOpened": "2026-04-13T15:51:31.653Z",
               "IsPinned": true,
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 2,
               "Title": "FaceIndexingService.cs",
               "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Services\\FaceIndexingService.cs",
               "RelativeDocumentMoniker": "Services\\FaceIndexingService.cs",
               "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Services\\FaceIndexingService.cs",
               "RelativeToolTip": "Services\\FaceIndexingService.cs",
-              "ViewState": "AgIAADwAAAAAAAAAAAAIwGAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAFoAAAAAAAAAAAAowGYAAAAxAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-04-12T14:53:45.941Z",
               "IsPinned": true,
@@ -70,13 +82,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 1,
               "Title": "FaceDetectionService.cs",
               "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Services\\FaceDetectionService.cs",
               "RelativeDocumentMoniker": "Services\\FaceDetectionService.cs",
               "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Services\\FaceDetectionService.cs",
               "RelativeToolTip": "Services\\FaceDetectionService.cs",
-              "ViewState": "AgIAACUAAAAAAAAAAAAgwDkAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAQAAAAAAAAAAAAuwBIAAAAZAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-04-12T19:13:18.764Z",
               "IsPinned": true,
@@ -84,15 +96,29 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": "FaceEmbeddingService.cs",
               "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Services\\FaceEmbeddingService.cs",
               "RelativeDocumentMoniker": "Services\\FaceEmbeddingService.cs",
               "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Services\\FaceEmbeddingService.cs",
               "RelativeToolTip": "Services\\FaceEmbeddingService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAACQAAAAIAAAAAAAAAA==",
+              "ViewState": "AgIAAAcAAAAAAAAAAAAAACQAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-04-12T18:24:22.625Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "FaceClusteringService.cs",
+              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Services\\FaceClusteringService.cs",
+              "RelativeDocumentMoniker": "Services\\FaceClusteringService.cs",
+              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Services\\FaceClusteringService.cs",
+              "RelativeToolTip": "Services\\FaceClusteringService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-22T12:25:53.374Z",
               "IsPinned": true,
               "EditorCaption": ""
             },
@@ -110,7 +136,57 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 5,
+              "Title": "SearchPage.xaml",
+              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Views\\Pages\\SearchPage.xaml",
+              "RelativeDocumentMoniker": "Views\\Pages\\SearchPage.xaml",
+              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Views\\Pages\\SearchPage.xaml",
+              "RelativeToolTip": "Views\\Pages\\SearchPage.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-04-22T11:07:33.096Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "SettingsPage.xaml",
+              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Views\\Pages\\SettingsPage.xaml",
+              "RelativeDocumentMoniker": "Views\\Pages\\SettingsPage.xaml",
+              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Views\\Pages\\SettingsPage.xaml",
+              "RelativeToolTip": "Views\\Pages\\SettingsPage.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-04-22T12:27:31.299Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "SettingsPage.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Views\\Pages\\SettingsPage.xaml.cs",
+              "RelativeDocumentMoniker": "Views\\Pages\\SettingsPage.xaml.cs",
+              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Views\\Pages\\SettingsPage.xaml.cs",
+              "RelativeToolTip": "Views\\Pages\\SettingsPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-22T12:27:38.349Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "PictureItem.cs",
+              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Models\\PictureItem.cs",
+              "RelativeDocumentMoniker": "Models\\PictureItem.cs",
+              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Models\\PictureItem.cs",
+              "RelativeToolTip": "Models\\PictureItem.cs",
+              "ViewState": "AgIAAAsAAAAAAAAAAAA9wAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-22T11:52:43.575Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
               "Title": "ImageWindowViewModel.cs",
               "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\ViewModels\\Windows\\ImageWindowViewModel.cs",
               "RelativeDocumentMoniker": "ViewModels\\Windows\\ImageWindowViewModel.cs",
@@ -118,34 +194,7 @@
               "RelativeToolTip": "ViewModels\\Windows\\ImageWindowViewModel.cs",
               "ViewState": "AgIAACEAAAAAAAAAAAAowDoAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-13T15:53:12.586Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "SearchViewModel.cs",
-              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\ViewModels\\Pages\\SearchViewModel.cs",
-              "RelativeDocumentMoniker": "ViewModels\\Pages\\SearchViewModel.cs",
-              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\ViewModels\\Pages\\SearchViewModel.cs",
-              "RelativeToolTip": "ViewModels\\Pages\\SearchViewModel.cs",
-              "ViewState": "AgIAAFwAAAAAAAAAAAAAwHoAAAAQAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-13T15:51:31.653Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "PersistenceService.cs",
-              "DocumentMoniker": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Services\\PersistenceService.cs",
-              "RelativeDocumentMoniker": "Services\\PersistenceService.cs",
-              "ToolTip": "C:\\Users\\matar\\Documents\\PugiosDocuments\\OwnProjects\\Picture_Showcaser\\Gallery2\\Services\\PersistenceService.cs",
-              "RelativeToolTip": "Services\\PersistenceService.cs",
-              "ViewState": "AgIAAJIAAAAAAAAAAAAswHcAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-12T19:06:41.295Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-04-13T15:53:12.586Z"
             }
           ]
         },
