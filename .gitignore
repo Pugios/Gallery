@@ -1,0 +1,9 @@
+# Build output
+bin/
+obj/
+
+# Visual Studio local files
+.vs/
+
+# Model files (too large for GitHub — download separately)
+Assets/Models/*.onnx
