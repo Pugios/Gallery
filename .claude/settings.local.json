@@ -4,7 +4,11 @@
       "Bash(find C:UsersmatarDocumentsPugiosDocumentsOwnProjectsPicture_ShowcaserGallery2 -type f -name *.xaml -o -name *ViewModel*)",
       "WebFetch(domain:link.springer.com)",
       "WebFetch(domain:arxiv.org)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(findstr /i \"onnx\\\\|cuda\\\\|directml\\\\|tensorrt\\\\|gpu\\\\|execution\" Gallery2.csproj)",
+      "Bash(findstr /i \"onnx cuda directml tensorrt gpu\" Gallery2.csproj)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet list *)"
     ]
   }
 }

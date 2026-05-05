@@ -17,6 +17,9 @@ public partial class PictureItem : ObservableObject
     [ObservableProperty]
     private BitmapSource? _thumbnail;
 
+    [ObservableProperty]
+    private int _displaySize = 180;
+
     public PictureItem(string filePath)
     {
         FilePath = filePath;

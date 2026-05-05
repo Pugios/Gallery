@@ -73,3 +73,14 @@ C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\
 C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\Assets\Models\face_detection_yunet_2023mar.onnx
 C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\Assets\Models\face_recognition_sface_2021dec.onnx
 C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\Assets\Models\webface_r50.onnx
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\Microsoft.ML.OnnxRuntime.dll
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\System.Numerics.Tensors.dll
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\runtimes\win-arm64\native\onnxruntime.dll
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\runtimes\win-arm64\native\onnxruntime.lib
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\runtimes\win-arm64\native\onnxruntime_providers_shared.dll
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\runtimes\win-x64\native\onnxruntime.dll
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\runtimes\win-x64\native\onnxruntime.lib
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\runtimes\win-x64\native\onnxruntime_providers_shared.dll
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\runtimes\win-x86\native\onnxruntime.dll
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\runtimes\win-x86\native\onnxruntime.lib
+C:\Users\matar\Documents\PugiosDocuments\OwnProjects\Picture_Showcaser\Gallery2\bin\Debug\net10.0-windows\runtimes\win-x86\native\onnxruntime_providers_shared.dll

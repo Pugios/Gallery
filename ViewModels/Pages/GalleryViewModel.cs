@@ -8,16 +8,19 @@ using MetadataExtractor.Formats.Exif;
 using Microsoft.Win32;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Controls;
 using Directory = System.IO.Directory;
+using Path = System.IO.Path;
 
 namespace Gallery2.ViewModels.Pages;
 
@@ -29,6 +32,7 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
 
     // The GalleryState service holds the list of imported folders and the currently active folder.
     private readonly GalleryState _galleryState;
+    public GalleryState GalleryState => _galleryState;
     // Headerstate to change the header from this page (title, subtitle, icon)
     private readonly HeaderState _headerState;
     private readonly GalleryHeaderViewModel _galleryHeader;
@@ -64,7 +68,7 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
     public ICollectionView? PicturesView { get; private set; }
 
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    // Constructor with GalleryState injected
+    // Constructor with States injected
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     public GalleryViewModel(GalleryState galleryState, HeaderState headerState, PersistenceService persistenceService, ShellThumbnailService shellThumbnailService, FaceIndexingService faceIndexingService)
     {
@@ -76,9 +80,10 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         _galleryHeader = new GalleryHeaderViewModel(galleryState);
 
         _galleryState.PropertyChanged += OnToolbarStateChanged;
+        _galleryState.ImportedFolders.CollectionChanged += OnImportedFoldersChanged;
     }
 
-    // INavigationAware Components
+    // Navigation To/From
     public async Task OnNavigatedToAsync()
     {
         if (_galleryState.ActiveFolder is null)
@@ -86,7 +91,10 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
             if (_galleryState.ImportedFolders.Count > 0)
                 await LoadFoldersAsync(_galleryState.ImportedFolders);
             else
+            {
+                Pictures = [];
                 _headerState.IsVisible = false;
+            }
         }
         else
         {
@@ -98,17 +106,18 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
         return Task.CompletedTask;
     }
 
+    // If no more Folders left go back to empty state
+    private void OnImportedFoldersChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_galleryState.ImportedFolders.Count == 0)
+        {
+            Pictures = [];
+            _headerState.IsVisible = false;
+        }
+    }
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // Selecting and Loading Pictures
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    [RelayCommand]
-    private async Task OnAddFolder()
-    {
-        var dialog = new OpenFolderDialog { Title = "Select a folder of images" };
-        if (dialog.ShowDialog() != true) return;
-        _galleryState.AddFolder(dialog.FolderName);
-    }
-
     private async Task LoadFoldersAsync(IEnumerable<string> folderPaths)
     {
         IsLoading = true;
@@ -161,8 +170,8 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
 
                     // Date taken
                     var subIfd = directories.OfType<ExifSubIfdDirectory>().FirstOrDefault();
-                    if (subIfd != null && subIfd.TryGetDateTime(ExifDirectoryBase.TagDateTimeOriginal, out var dt))
-                        dateTaken = dt;
+                    dateTaken = subIfd != null && subIfd.TryGetDateTime(ExifDirectoryBase.TagDateTimeOriginal, out DateTime dt) ? dt : null;
+
 
                     // GPS
                     var gps = directories.OfType<GpsDirectory>().FirstOrDefault();
@@ -172,16 +181,15 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
 
                     // Rotation
                     var ifd0 = directories.OfType<ExifIfd0Directory>().FirstOrDefault();
-                    var rot = (ifd0 != null && ifd0.TryGetInt32(ExifDirectoryBase.TagOrientation, out int o) ? o : 0) switch
+                    rotation = (ifd0 != null && ifd0.TryGetInt32(ExifDirectoryBase.TagOrientation, out int o) ? o : 0) switch
                     {
                         3 => 180,
                         6 => 90,
                         8 => 270,
                         _ => 0
                     };
-                    rotation = rot;
 
-                    cache[file] = new CachedFileMetadata(file, dateTaken, lat, lng, rot);
+                    cache[file] = new CachedFileMetadata(file, dateTaken, lat, lng, rotation);
                     cacheUpdated = true;
                 }
 
@@ -199,6 +207,8 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
             _ = _faceIndexingService.IndexUnprocessedAsync();
         }
 
+        var displaySize = _galleryState.ImageSizePixels;
+        foreach (var p in tempPictures) p.DisplaySize = displaySize;
         Pictures = new ObservableCollection<PictureItem>(tempPictures.OrderBy(p => p.DateTaken ?? DateTime.MaxValue));
         PicturesView = CollectionViewSource.GetDefaultView(Pictures);
         OnPropertyChanged(nameof(PicturesView));
@@ -219,6 +229,14 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
             finally { semaphore.Release(); }
         });
         await Task.WhenAll(tasks);
+    }
+
+    [RelayCommand]
+    private async Task OnAddFolder()
+    {
+        var dialog = new OpenFolderDialog { Title = "Select a folder of images" };
+        if (dialog.ShowDialog() != true) return;
+        _galleryState.AddFolder(dialog.FolderName);
     }
 
     private void UpdateHeader()
@@ -295,12 +313,16 @@ public partial class GalleryViewModel : ObservableObject, INavigationAware
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // Grouping
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
     private void OnToolbarStateChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(GalleryState.SelectedGroupMode))
-        {
             ApplyGrouping();
+
+        if (e.PropertyName == nameof(GalleryState.ImageSizePixels))
+        {
+            var pixels = _galleryState.ImageSizePixels;
+            foreach (var pic in Pictures)
+                pic.DisplaySize = pixels;
         }
     }
 

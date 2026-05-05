@@ -3,6 +3,7 @@ using Gallery2.Services;
 using Gallery2.ViewModels.Header;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -14,6 +15,7 @@ namespace Gallery2.ViewModels.Pages;
 public partial class SearchViewModel : ObservableObject, INavigationAware
 {
     private readonly HeaderState _headerState;
+    private readonly GalleryState _galleryState;
     private readonly FaceIndexingService _faceIndexingService;
     private readonly PersistenceService _persistenceService;
     private readonly ShellThumbnailService _shellThumbnailService;
@@ -41,7 +43,15 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
     private bool _isPersonSelected;
     public bool IsPersonNotSelected => !IsPersonSelected;
 
-    partial void OnIsPersonSelectedChanged(bool value) => _searchHeader.IsPersonSelected = value;
+    // cluster ID for "Uncategorized" entry
+    private const string UncategorizedClusterId = "__uncategorized__";
+
+    partial void OnIsPersonSelectedChanged(bool value)
+    {
+        _searchHeader.IsPersonSelected = value;
+        var selected = People.FirstOrDefault(p => p.IsSelected);
+        _searchHeader.IsDissolveAvailable = value && selected?.ClusterId != UncategorizedClusterId;
+    }
 
     // Gallery
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -51,13 +61,37 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
     private readonly ConcurrentDictionary<string, WeakReference<BitmapSource>> _thumbnailCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly SearchHeaderViewModel _searchHeader;
 
-    public SearchViewModel(HeaderState headerState, FaceIndexingService faceIndexingService, PersistenceService persistenceService, ShellThumbnailService shellThumbnailService)
+    public SearchViewModel(HeaderState headerState, GalleryState galleryState, FaceIndexingService faceIndexingService, PersistenceService persistenceService, ShellThumbnailService shellThumbnailService)
     {
         _headerState = headerState;
+        _galleryState = galleryState;
         _faceIndexingService = faceIndexingService;
         _persistenceService = persistenceService;
         _shellThumbnailService = shellThumbnailService;
         _searchHeader = new SearchHeaderViewModel(ReindexFacesCommand, ReturnToGridCommand, DissolvePersonCommand);
+
+        _galleryState.ImportedFolders.CollectionChanged += OnImportedFoldersChanged;
+
+        _faceIndexingService.IndexingStateChanged += isIndexing =>
+        {
+            IsIndexing = isIndexing;
+            _searchHeader.IsIndexing = isIndexing;
+        };
+        _faceIndexingService.ProgressChanged += p =>
+        {
+            StepText = p.Title;
+            Progress = p.TotalFiles > 0 ? (p.ProcessedFiles / (double)p.TotalFiles) * 100.0 : 0;
+        };
+    }
+
+    private void OnImportedFoldersChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_galleryState.ImportedFolders.Count == 0)
+        {
+            People = [];
+            Pictures = [];
+            IsPersonSelected = false;
+        }
     }
 
     public Task OnNavigatedToAsync()
@@ -141,17 +175,35 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
     private async Task LoadFacesAsync()
     {
         var clusters = _persistenceService.FaceClusters;
-        if (clusters.IsEmpty) return;
+        if (clusters.IsEmpty)
+        {
+            People = [];
+            return;
+        }
         var faceIndex = _persistenceService.FaceIndex;
 
         List<FacePictureItem> people = clusters
-            .OrderByDescending(kvp => faceIndex.Count(f => f.Value.Contains(kvp.Key, StringComparer.OrdinalIgnoreCase)))
-            .Select(kvp => new FacePictureItem
-            {
-                ClusterId = kvp.Key,
-                Name = kvp.Value.Name ?? ""
-            })
+            .Select(kvp => (kvp.Key, kvp.Value, Count: faceIndex.Count(f => f.Value.Contains(kvp.Key, StringComparer.OrdinalIgnoreCase))))
+            .Where(x => x.Count > 1)
+            .OrderByDescending(x => x.Count)
+            .Select(x => new FacePictureItem { ClusterId = x.Key, Name = x.Value.Name ?? "" })
             .ToList();
+
+        // Find embeddings whose file has no surviving cluster assignment.
+        // Face-less images are also in FaceIndex with [] but have no embeddings,
+        // so they are naturally excluded by iterating FaceEmbeddings.
+        var validIds = clusters.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var uncategorizedEmbeddings = _persistenceService.FaceEmbeddings
+            .Where(e => !faceIndex.TryGetValue(e.FilePath, out var ids)
+                        || !ids.Any(id => validIds.Contains(id)))
+            .ToList();
+
+        FacePictureItem? uncategorizedItem = null;
+        if (uncategorizedEmbeddings.Count > 0)
+        {
+            uncategorizedItem = new FacePictureItem { ClusterId = UncategorizedClusterId, Name = "Uncategorized" };
+            people.Add(uncategorizedItem);
+        }
 
         People = new ObservableCollection<FacePictureItem>(people);
 
@@ -159,10 +211,20 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
         {
             foreach (FacePictureItem person in people)
             {
-                if (!clusters.TryGetValue(person.ClusterId, out var cluster)) continue;
-                int rotation = _persistenceService.MetadataCache.TryGetValue(cluster.RepresentativeFilePath, out var meta)
-                    ? meta.Rotation ?? 0 : 0;
-                person.Thumbnail = LoadFaceThumbnail(cluster.RepresentativeFilePath, cluster.RepresentativeBoundingBox, rotation);
+                if (person.ClusterId == UncategorizedClusterId)
+                {
+                    var rep = uncategorizedEmbeddings![0];
+                    int rotation = _persistenceService.MetadataCache.TryGetValue(rep.FilePath, out var meta)
+                        ? meta.Rotation ?? 0 : 0;
+                    person.Thumbnail = LoadFaceThumbnail(rep.FilePath, rep.BoundingBox, rotation);
+                }
+                else
+                {
+                    if (!clusters.TryGetValue(person.ClusterId, out var cluster)) continue;
+                    int rotation = _persistenceService.MetadataCache.TryGetValue(cluster.RepresentativeFilePath, out var meta)
+                        ? meta.Rotation ?? 0 : 0;
+                    person.Thumbnail = LoadFaceThumbnail(cluster.RepresentativeFilePath, cluster.RepresentativeBoundingBox, rotation);
+                }
             }
         });
     }
@@ -219,14 +281,37 @@ public partial class SearchViewModel : ObservableObject, INavigationAware
         foreach (var p in People) p.IsSelected = false;
         person.IsSelected = true;
         IsPersonSelected = true;
-        // Find every file that contains this person's cluster ID
-        var matchingImages = _persistenceService.FaceIndex
-            .Where(kvp => kvp.Value.Contains(person.ClusterId, StringComparer.OrdinalIgnoreCase))
-            .Select(kvp => _persistenceService.MetadataCache.TryGetValue(kvp.Key, out var meta)
-                ? new PictureItem(meta)
-                : new PictureItem(kvp.Key))
-            .OrderBy(p => p.DateTaken ?? DateTime.MaxValue)
-            .ToList();
+
+        List<PictureItem> matchingImages;
+
+        if (person.ClusterId == UncategorizedClusterId)
+        {
+            // Collect every file that has at least one embedding not covered by any live cluster.
+            var validIds = _persistenceService.FaceClusters.Keys
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            matchingImages = _persistenceService.FaceEmbeddings
+                .Select(e => e.FilePath)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Where(filePath => !_persistenceService.FaceIndex.TryGetValue(filePath, out var ids)
+                                   || !ids.Any(id => validIds.Contains(id)))
+                .Select(filePath => _persistenceService.MetadataCache.TryGetValue(filePath, out var meta)
+                    ? new PictureItem(meta)
+                    : new PictureItem(filePath))
+                .OrderBy(p => p.DateTaken ?? DateTime.MaxValue)
+                .ToList();
+        }
+        else
+        {
+            // Find every file that contains this person's cluster ID.
+            matchingImages = _persistenceService.FaceIndex
+                .Where(kvp => kvp.Value.Contains(person.ClusterId, StringComparer.OrdinalIgnoreCase))
+                .Select(kvp => _persistenceService.MetadataCache.TryGetValue(kvp.Key, out var meta)
+                    ? new PictureItem(meta)
+                    : new PictureItem(kvp.Key))
+                .OrderBy(p => p.DateTaken ?? DateTime.MaxValue)
+                .ToList();
+        }
 
 
         Pictures = new ObservableCollection<PictureItem>(matchingImages);

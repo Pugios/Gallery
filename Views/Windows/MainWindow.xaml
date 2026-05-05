@@ -34,13 +34,22 @@
         <helpers:SubtractConverter
             x:Key="SubtractConverter" />
 
+        <!-- Read from GalleryState -->
         <ObjectDataProvider
             x:Key="GroupModeValues"
             MethodName="GetValues"
             ObjectType="{x:Type sys:Enum}">
             <ObjectDataProvider.MethodParameters>
-                <x:Type
-                    TypeName="models:GroupMode" />
+                <x:Type TypeName="models:GroupMode" />
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <ObjectDataProvider
+            x:Key="ThumbnailSizeValues"
+            MethodName="GetValues"
+            ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="models:ThumbnailSize" />
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
 
@@ -48,11 +57,19 @@
         <!-- Gallery Header -->
         <DataTemplate
             DataType="{x:Type vmh:GalleryHeaderViewModel}">
-            <ComboBox
-                VerticalAlignment="Center"
-                Width="120"
-                ItemsSource="{Binding Source={StaticResource GroupModeValues}}"
-                SelectedItem="{Binding GalleryState.SelectedGroupMode}" />
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <ComboBox
+                    VerticalAlignment="Center"
+                    Width="100"
+                    Margin="0,0,8,0"
+                    ItemsSource="{Binding Source={StaticResource GroupModeValues}}"
+                    SelectedItem="{Binding GalleryState.SelectedGroupMode}" />
+                <ComboBox
+                    VerticalAlignment="Center"
+                    Width="120"
+                    ItemsSource="{Binding Source={StaticResource ThumbnailSizeValues}}"
+                    SelectedItem="{Binding GalleryState.SelectedThumbnailSize}" />
+            </StackPanel>
         </DataTemplate>
 
         <!-- Search Header -->
@@ -70,7 +87,7 @@
                     Icon="{ui:SymbolIcon PersonDelete24}"
                     Command="{Binding DissolvePersonCommand}"
                     Margin="0,0,8,0"
-                    Visibility="{Binding IsPersonSelected, Converter={StaticResource BoolToVis}}" />
+                    Visibility="{Binding IsDissolveAvailable, Converter={StaticResource BoolToVis}}" />
                 <ui:Button
                     Content="Reindex Faces"
                     Icon="{ui:SymbolIcon ArrowClockwise24}"

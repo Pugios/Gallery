@@ -14,4 +14,8 @@ public partial class SearchHeaderViewModel(ICommand reindexFacesCommand, IComman
 
     [ObservableProperty]
     private bool _isPersonSelected;
+
+    // True only when a real cluster (not Uncategorized) is selected.
+    [ObservableProperty]
+    private bool _isDissolveAvailable;
 }

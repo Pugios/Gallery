@@ -6,6 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:Gallery2.Views.Pages"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:helpers="clr-namespace:Gallery2.Helpers"
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     ScrollViewer.CanContentScroll="False"
     mc:Ignorable="d"
@@ -16,6 +17,8 @@
     <Page.Resources>
         <BooleanToVisibilityConverter
             x:Key="BoolToVis" />
+        <helpers:BitmapToImageBrushConverter
+            x:Key="BitmapToImageBrush" />
     </Page.Resources>
 
     <Grid>
@@ -79,14 +82,10 @@
             <ui:VirtualizingGridView.ItemTemplate>
                 <DataTemplate>
                     <Border
-                        Width="180"
-                        Height="180"
+                        Width="{Binding DisplaySize}"
+                        Height="{Binding DisplaySize}"
                         CornerRadius="4"
-                        ClipToBounds="True">
-                        <Image
-                            Source="{Binding Thumbnail}"
-                            Stretch="UniformToFill"/>
-                    </Border>
+                        Background="{Binding Thumbnail, Converter={StaticResource BitmapToImageBrush}}" />
                 </DataTemplate>
             </ui:VirtualizingGridView.ItemTemplate>
 

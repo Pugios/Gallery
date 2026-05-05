@@ -4,11 +4,13 @@ using Gallery2.ViewModels.Pages;
 using Gallery2.Views.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using OpenCvSharp;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Wpf.Ui.Abstractions.Controls;
+using Size = System.Windows.Size;
 
 namespace Gallery2.Views.Pages;
 
@@ -23,13 +25,64 @@ public partial class GalleryPage : INavigableView<GalleryViewModel>
         DataContext = this;
         InitializeComponent();
         Loaded += OnLoaded;
+        //Unloaded += OnUnloaded;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         _scrollViewer = FindScrollViewer(ImageGrid);
+        ApplyThumbnailSize(ViewModel.GalleryState.ImageSizePixels);
+        ViewModel.GalleryState.PropertyChanged += OnGalleryStatePropertyChanged;
+        ViewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
 
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        ViewModel.GalleryState.PropertyChanged -= OnGalleryStatePropertyChanged;
+        ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+    }
+
+    // Change Thumbnail Size
+    // ======================================
+
+    // If Done Loading
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(GalleryViewModel.IsLoading) && !ViewModel.IsLoading)
+            Dispatcher.InvokeAsync(() => ApplyThumbnailSize(ViewModel.GalleryState.ImageSizePixels),
+                System.Windows.Threading.DispatcherPriority.Loaded);
+    }
+
+    // If Image Size Changed in Toolbar
+    private void OnGalleryStatePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(GalleryState.ImageSizePixels))
+            ApplyThumbnailSize(ViewModel.GalleryState.ImageSizePixels);
+    }
+
+    private void ApplyThumbnailSize(int pixels)
+    {
+        var panel = FindVisualChild<Wpf.Ui.Controls.VirtualizingWrapPanel>(ImageGrid);
+        if (panel is null) return;
+        panel.ItemSize = new Size(pixels, pixels);
+        ImageGrid.InvalidateMeasure();
+        ImageGrid.UpdateLayout();
+    }
+
+    private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T t) return t;
+            var result = FindVisualChild<T>(child);
+            if (result is not null) return result;
+        }
+        return null;
+    }
+
+    // Double Click - Open image
+    // ======================================
     private void ImageGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         var dep = e.OriginalSource as DependencyObject;
@@ -44,6 +97,8 @@ public partial class GalleryPage : INavigableView<GalleryViewModel>
         }
     }
 
+    // Scroll Speed
+    // ======================================
     private void ImageGrid_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
         if (_scrollViewer is null) return;

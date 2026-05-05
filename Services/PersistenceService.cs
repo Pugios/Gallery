@@ -1,14 +1,10 @@
 ﻿using Gallery2.Models;
 using System.Collections.Concurrent;
-using System.Diagnostics.Metrics;
-using System.Diagnostics.PerformanceData;
 using System.Globalization;
 using System.IO;
-using System.Runtime.Intrinsics.Arm;
-using System.Text;
 using System.Text.Json;
-using System.Windows.Data;
-using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
+using Path = System.IO.Path;
 
 namespace Gallery2.Services;
 
@@ -40,7 +36,6 @@ public class PersistenceService
         _faceIndex = new Lazy<ConcurrentDictionary<string, string[]>>(LoadFaceIndex);
         _faceClusters = new Lazy<ConcurrentDictionary<string, ClusterData>>(LoadFaceClusters);
         _faceEmbeddings = new Lazy<List<EmbeddingData>>(LoadFaceEmbeddings);
-
     }
 
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -77,7 +72,6 @@ public class PersistenceService
             double? lat = double.TryParse(parts[2], NumberStyles.Any, CultureInfo.InvariantCulture, out var la) ? la : null;
             double? lng = double.TryParse(parts[3], NumberStyles.Any, CultureInfo.InvariantCulture, out var lo) ? lo : null;
             int? rotation = int.TryParse(parts[4], out var rot) ? rot : null;
-
             result[parts[0]] = new CachedFileMetadata(parts[0], dateTaken, lat, lng, rotation);
         }
         return result;

@@ -10,7 +10,7 @@ public class FaceClusteringService
     // average-linkage cosine similarity is at or above this value.
     // Raise  → fewer, tighter clusters (may split same person across angles).
     // Lower  → more liberal merges (may join different people who look similar).
-    private const float MergeThreshold = 0.30f;
+    private const float MergeThreshold = 0.22f;
 
     public FaceClusteringService(PersistenceService persistenceService)
     {
