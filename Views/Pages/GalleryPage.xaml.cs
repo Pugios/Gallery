@@ -5,6 +5,7 @@ using Gallery2.Views.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using OpenCvSharp;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -89,12 +90,22 @@ public partial class GalleryPage : INavigableView<GalleryViewModel>
         while (dep != null && dep is not ListViewItem)
             dep = VisualTreeHelper.GetParent(dep);
 
+        // Open in new Custom Window
+
+        //if (dep is ListViewItem { DataContext: PictureItem picture })
+        //{
+        //    var window = App.Services.GetRequiredService<ImageWindow>();
+        //    window.ViewModel.Load(picture);
+        //    window.Show();
+        //}
+
+        // Open with default image viewer
+
         if (dep is ListViewItem { DataContext: PictureItem picture })
         {
-            var window = App.Services.GetRequiredService<ImageWindow>();
-            window.ViewModel.Load(picture);
-            window.Show();
+            Process.Start(new ProcessStartInfo(picture.FilePath) { UseShellExecute = true });
         }
+
     }
 
     // Scroll Speed

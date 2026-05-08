@@ -2,16 +2,17 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <AssemblyName>Gallery</AssemblyName>
     <TargetFramework>net10.0-windows</TargetFramework>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>wpfui-icon.ico</ApplicationIcon>
+    <ApplicationIcon>gallery.ico</ApplicationIcon>
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="wpfui-icon.ico" />
+    <Content Include="gallery.ico" />
   </ItemGroup>
 
   <ItemGroup>
